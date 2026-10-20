@@ -64,7 +64,8 @@ class OneEuroFilter:
 
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
-    Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
+    Detects and opens ONLY external USB cameras on the system,
+    strictly excluding integrated laptop cameras and virtual cameras (OBS, iVCam, etc.).
     Returns (cap, cam_name, cam_idx).
     """
     devices = []
@@ -75,46 +76,65 @@ def get_usb_camera_cap(cam_w=640, cam_h=480):
     except Exception:
         devices = []
 
-    usb_names = []
-    try:
-        import subprocess
-        cmd = 'Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -eq "usbvideo" -or ($_.PNPClass -eq "Camera" -and $_.DeviceID -like "USB*") } | Select-Object -ExpandProperty Name'
-        res = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd], text=True, timeout=4)
-        usb_names = [line.strip() for line in res.strip().splitlines() if line.strip()]
-    except Exception:
-        usb_names = []
+    virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam', 'splitcam', 'snap camera']
+    internal_keywords = ['integrated', 'internal', 'built-in', 'builtin', 'integrada', 'interna', 'front camera', 'rear camera', 'ir camera']
 
     selected_idx = None
-    selected_name = "Camera USB"
+    selected_name = None
 
-    for idx, dev_name in enumerate(devices):
-        for usb_n in usb_names:
-            if usb_n.lower() in dev_name.lower() or dev_name.lower() in usb_n.lower():
-                selected_idx = idx
-                selected_name = dev_name
-                break
-        if selected_idx is not None:
+    if devices:
+        print(f"[CAMERA] Dispositivos de video detectados: {devices}")
+        # 1. First priority: find a device that is neither virtual nor integrated (true external USB camera)
+        for idx, dev_name in enumerate(devices):
+            name_lower = dev_name.lower()
+            if any(k in name_lower for k in virtual_keywords):
+                continue
+            if any(k in name_lower for k in internal_keywords):
+                continue
+            selected_idx = idx
+            selected_name = dev_name
+            print(f"[CAMERA] Camera USB externa identificada: '{dev_name}' (Indice {idx})")
             break
 
+        # 2. If not found by exclusion, look for explicit USB camera keywords
+        if selected_idx is None:
+            for idx, dev_name in enumerate(devices):
+                name_lower = dev_name.lower()
+                if any(k in name_lower for k in virtual_keywords):
+                    continue
+                if any(k in name_lower for k in ['usb', 'c922', 'c920', 'logitech', 'webcam']):
+                    if not any(k in name_lower for k in internal_keywords):
+                        selected_idx = idx
+                        selected_name = dev_name
+                        print(f"[CAMERA] Camera USB identificada por palavra-chave: '{dev_name}' (Indice {idx})")
+                        break
+
+    # 3. Fallback scan if pygrabber failed to list or didn't find
     if selected_idx is None:
-        virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam']
-        for idx, dev_name in enumerate(devices):
-            if not any(k in dev_name.lower() for k in virtual_keywords):
-                selected_idx = idx
-                selected_name = dev_name
-                break
+        # Try testing index 1 first (commonly external USB camera when index 0 is integrated)
+        for test_idx in [1, 2, 3, 0]:
+            test_cap = cv2.VideoCapture(test_idx, cv2.CAP_DSHOW)
+            if test_cap.isOpened():
+                ret, _ = test_cap.read()
+                test_cap.release()
+                if ret:
+                    selected_idx = test_idx
+                    selected_name = devices[test_idx] if test_idx < len(devices) else f"Camera USB (Indice {test_idx})"
+                    print(f"[CAMERA] Conectando via indice detectado: {selected_idx} ('{selected_name}')")
+                    break
 
     if selected_idx is None:
-        selected_idx = 0
-        if devices:
-            selected_name = devices[0]
+        selected_idx = 1
+        selected_name = "Camera USB (Padrao)"
 
+    # Open with DirectShow backend for fast hardware access on Windows
     cap = cv2.VideoCapture(selected_idx, cv2.CAP_DSHOW)
     if not cap.isOpened():
         cap = cv2.VideoCapture(selected_idx)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+    print(f"[CAMERA] Camera aberta com sucesso: '{selected_name}' (Indice {selected_idx})")
     return cap, selected_name, selected_idx
 
 

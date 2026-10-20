@@ -119,7 +119,8 @@ def draw_energy_conduits(frame, center, fingertips, color=(0, 220, 255)):
 
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
-    Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
+    Detects and opens ONLY external USB cameras on the system,
+    strictly excluding integrated laptop cameras and virtual cameras (OBS, iVCam, etc.).
     Returns (cap, cam_name, cam_idx).
     """
     devices = []
@@ -130,42 +131,56 @@ def get_usb_camera_cap(cam_w=640, cam_h=480):
     except Exception:
         devices = []
 
-    # Query Windows WMI for hardware USB cameras
-    usb_names = []
-    try:
-        import subprocess
-        cmd = 'Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -eq "usbvideo" -or ($_.PNPClass -eq "Camera" -and $_.DeviceID -like "USB*") } | Select-Object -ExpandProperty Name'
-        res = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd], text=True, timeout=4)
-        usb_names = [line.strip() for line in res.strip().splitlines() if line.strip()]
-    except Exception:
-        usb_names = []
+    virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam', 'splitcam', 'snap camera']
+    internal_keywords = ['integrated', 'internal', 'built-in', 'builtin', 'integrada', 'interna', 'front camera', 'rear camera', 'ir camera']
 
     selected_idx = None
-    selected_name = "Camera USB"
+    selected_name = None
 
-    # Match USB camera name with DirectShow devices
-    for idx, dev_name in enumerate(devices):
-        for usb_n in usb_names:
-            if usb_n.lower() in dev_name.lower() or dev_name.lower() in usb_n.lower():
-                selected_idx = idx
-                selected_name = dev_name
-                break
-        if selected_idx is not None:
+    if devices:
+        print(f"[CAMERA] Dispositivos de video detectados: {devices}")
+        # 1. First priority: find a device that is neither virtual nor integrated (true external USB camera)
+        for idx, dev_name in enumerate(devices):
+            name_lower = dev_name.lower()
+            if any(k in name_lower for k in virtual_keywords):
+                continue
+            if any(k in name_lower for k in internal_keywords):
+                continue
+            selected_idx = idx
+            selected_name = dev_name
+            print(f"[CAMERA] Camera USB externa identificada: '{dev_name}' (Indice {idx})")
             break
 
-    # Fallback: ignore known virtual cameras
+        # 2. If not found by exclusion, look for explicit USB camera keywords
+        if selected_idx is None:
+            for idx, dev_name in enumerate(devices):
+                name_lower = dev_name.lower()
+                if any(k in name_lower for k in virtual_keywords):
+                    continue
+                if any(k in name_lower for k in ['usb', 'c922', 'c920', 'logitech', 'webcam']):
+                    if not any(k in name_lower for k in internal_keywords):
+                        selected_idx = idx
+                        selected_name = dev_name
+                        print(f"[CAMERA] Camera USB identificada por palavra-chave: '{dev_name}' (Indice {idx})")
+                        break
+
+    # 3. Fallback scan if pygrabber failed to list or didn't find
     if selected_idx is None:
-        virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam']
-        for idx, dev_name in enumerate(devices):
-            if not any(k in dev_name.lower() for k in virtual_keywords):
-                selected_idx = idx
-                selected_name = dev_name
-                break
+        # Try testing index 1 first (commonly external USB camera when index 0 is integrated)
+        for test_idx in [1, 2, 3, 0]:
+            test_cap = cv2.VideoCapture(test_idx, cv2.CAP_DSHOW)
+            if test_cap.isOpened():
+                ret, _ = test_cap.read()
+                test_cap.release()
+                if ret:
+                    selected_idx = test_idx
+                    selected_name = devices[test_idx] if test_idx < len(devices) else f"Camera USB (Indice {test_idx})"
+                    print(f"[CAMERA] Conectando via indice detectado: {selected_idx} ('{selected_name}')")
+                    break
 
     if selected_idx is None:
-        selected_idx = 0
-        if devices:
-            selected_name = devices[0]
+        selected_idx = 1
+        selected_name = "Camera USB (Padrao)"
 
     # Open with DirectShow backend for fast hardware access on Windows
     cap = cv2.VideoCapture(selected_idx, cv2.CAP_DSHOW)
@@ -174,6 +189,7 @@ def get_usb_camera_cap(cam_w=640, cam_h=480):
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+    print(f"[CAMERA] Camera aberta com sucesso: '{selected_name}' (Indice {selected_idx})")
     return cap, selected_name, selected_idx
 
 
@@ -226,11 +242,13 @@ def main():
     is_scrolling = False
     prev_scroll_y = None
 
-    # System Productivity Swipe Engine (Andrew's Lab)
-    palm_history = deque(maxlen=7)  # Records recent (time, x, y) for velocity
+    # System Productivity Swipe Engine (Andrew's Lab & Alt+Tab)
+    palm_history = deque(maxlen=12)  # Records recent (time, x, y) for velocity & gesture detection
     last_system_swipe_time = 0.0
-    SYSTEM_SWIPE_COOLDOWN = 0.85     # Prevents accidental rapid-fire triggers
-    SWIPE_DIST_THRESHOLD = 55        # Pixels of displacement required for swipe
+    SYSTEM_SWIPE_COOLDOWN = 0.55     # Cooldown entre acionamentos
+    SWIPE_DIST_THRESHOLD = 32        # Pixels de deslocamento necessarios (suave e responsivo)
+    open_palm_hold_start = 0.0
+    open_palm_hold_triggered = False
 
     # Dual-Hand Zoom State (Tony Stark Hologram)
     prev_dual_pinch_dist = None
@@ -251,10 +269,12 @@ def main():
     print("  - Clique com Trava Magnetica: Pinca Polegar + Indicador")
     print("  - Arrastar (Drag): Segure a pinca por > 0.3s")
     print("  - Scroll MacBook: Dois dedos levantados (Indicador + Medio)")
-    print("  - Swipe Esquerda (Mao Aberta): Proxima Area de Trabalho")
-    print("  - Swipe Direita (Mao Aberta): Area de Trabalho Anterior")
-    print("  - Swipe Cima (Mao Aberta): Visao de Tarefas (Win+Tab)")
-    print("  - Swipe Baixo (Mao Aberta): Mostrar Desktop (Win+D)")
+    print(" [GESTOS COM MAO ABERTA - PAGINAS & ALT+TAB]")
+    print("  - Trocar Pagina / Proxima Aba: Mao Aberta + Deslizar para a Direita (Ctrl+Tab)")
+    print("  - Voltar Pagina / Aba Anterior: Mao Aberta + Deslizar para a Esquerda (Ctrl+Shift+Tab)")
+    print("  - Alternar Janelas (Alt+Tab): Mao Aberta + Deslizar para Cima")
+    print("    OU Apenas SEGURE A MAO ABERTA parada por 0.8s!")
+    print("  - Mostrar Desktop (Win+D): Mao Aberta + Deslizar para Baixo")
     print(" [SISTEMA HOMEM DE FERRO / TONY STARK]")
     print("  - HUD Holografico com Reator Arc na palma em tempo real")
     print("  - Zoom Holografico: Faca pinca com AS DUAS MAOS e afaste/junte")
@@ -392,15 +412,20 @@ def main():
             # Fingertips list for energy conduits
             all_tips = [thumb_px, index_px, middle_px, ring_px, pinky_px]
 
-            # Extension checks
-            index_up = index_px[1] < index_pip[1]
-            middle_up = middle_px[1] < middle_pip[1]
-            ring_up = ring_px[1] < ring_pip[1]
-            pinky_up = pinky_px[1] < pinky_pip[1]
+            # Extension checks: Rotation-invariant via Euclidean distance to wrist
+            def is_finger_ext(tip_pt, pip_pt):
+                d_tip = math.hypot(tip_pt[0] - wrist_px[0], tip_pt[1] - wrist_px[1])
+                d_pip = math.hypot(pip_pt[0] - wrist_px[0], pip_pt[1] - wrist_px[1])
+                return d_tip > (d_pip * 1.12)
+
+            index_up = is_finger_ext(index_px, index_pip)
+            middle_up = is_finger_ext(middle_px, middle_pip)
+            ring_up = is_finger_ext(ring_px, ring_pip)
+            pinky_up = is_finger_ext(pinky_px, pinky_pip)
 
             # Count open fingers (excluding thumb)
             open_fingers_count = sum([index_up, middle_up, ring_up, pinky_up])
-            all_fingers_open = open_fingers_count == 4
+            all_fingers_open = open_fingers_count >= 3  # Tolerate slight angle or partial fold
 
             # Hand scale normalization
             hand_scale = max(60, math.hypot(wrist_px[0] - middle_pip[0], wrist_px[1] - middle_pip[1]))
@@ -419,59 +444,93 @@ def main():
             draw_energy_conduits(frame, palm_center, all_tips, (0, 200, 255))
 
             # -------------------------------------------------------------
-            # FEATURE 1: SYSTEM PRODUCTIVITY SWIPES (Andrew's Lab)
-            # Full Open Palm Swipes (Desktop Switch / Mission Control / Desktop)
+            # FEATURE 1: SYSTEM PRODUCTIVITY SWIPES & OPEN PALM ACTIONS
+            # Full Open Palm: Swipes (Paginas / Alt+Tab) e Segurar Aberta (Alt+Tab)
             # -------------------------------------------------------------
-            if all_fingers_open and dist_thumb_index > (55 * scale_ratio):
+            if all_fingers_open and dist_thumb_index > (32 * scale_ratio):
                 palm_history.append((t_current, palm_center[0], palm_center[1]))
 
-                if len(palm_history) >= 4 and (t_current - last_system_swipe_time) > SYSTEM_SWIPE_COOLDOWN:
+                if open_palm_hold_start == 0.0:
+                    open_palm_hold_start = t_current
+
+                hold_duration = t_current - open_palm_hold_start
+                swiped = False
+
+                if len(palm_history) >= 3 and (t_current - last_system_swipe_time) > SYSTEM_SWIPE_COOLDOWN:
                     t_old, old_x, old_y = palm_history[0]
                     t_now_p, cur_x, cur_y = palm_history[-1]
                     dx = cur_x - old_x
                     dy = cur_y - old_y
                     dt = t_now_p - t_old
 
-                    if dt > 0.04 and dt < 0.40:
-                        # Horizontal Swipes (Switch Virtual Desktops)
-                        if abs(dx) > SWIPE_DIST_THRESHOLD and abs(dx) > abs(dy) * 1.4:
+                    if dt > 0.03 and dt < 0.50:
+                        # Horizontal Swipes (Troca de Paginas / Abas / Desktops)
+                        if abs(dx) > SWIPE_DIST_THRESHOLD and abs(dx) > abs(dy) * 1.05:
                             if dx > 0:
-                                # Swipe Right -> Previous Desktop
-                                pyautogui.hotkey('win', 'ctrl', 'left')
-                                current_action_label = "DESKTOP < PREVIOUS"
-                                label_color = (0, 255, 120)
-                                last_system_swipe_time = t_current
-                                palm_history.clear()
-                            else:
-                                # Swipe Left -> Next Desktop
+                                # Swipe Direita -> Proxima Pagina / Aba (Ctrl+Tab) e Desktop (Win+Ctrl+Right)
+                                pyautogui.hotkey('ctrl', 'tab')
                                 pyautogui.hotkey('win', 'ctrl', 'right')
-                                current_action_label = "DESKTOP > NEXT"
+                                current_action_label = "PAGINA > PROXIMA (Ctrl+Tab)"
                                 label_color = (0, 255, 120)
                                 last_system_swipe_time = t_current
                                 palm_history.clear()
+                                open_palm_hold_start = t_current
+                                open_palm_hold_triggered = True
+                                swiped = True
+                            else:
+                                # Swipe Esquerda -> Aba Anterior / Voltar Pagina (Ctrl+Shift+Tab) e Desktop (Win+Ctrl+Left)
+                                pyautogui.hotkey('ctrl', 'shift', 'tab')
+                                pyautogui.hotkey('win', 'ctrl', 'left')
+                                current_action_label = "PAGINA < ANTERIOR (Ctrl+Shift+Tab)"
+                                label_color = (0, 255, 120)
+                                last_system_swipe_time = t_current
+                                palm_history.clear()
+                                open_palm_hold_start = t_current
+                                open_palm_hold_triggered = True
+                                swiped = True
 
-                        # Vertical Swipes (Mission Control / Desktop)
-                        elif abs(dy) > SWIPE_DIST_THRESHOLD and abs(dy) > abs(dx) * 1.4:
+                        # Vertical Swipes (Alt+Tab / Mostrar Desktop)
+                        elif abs(dy) > SWIPE_DIST_THRESHOLD and abs(dy) > abs(dx) * 1.05:
                             if dy < 0:
-                                # Swipe Up -> Mission Control (Task View)
-                                pyautogui.hotkey('win', 'tab')
-                                current_action_label = "MISSION CONTROL (Win+Tab)"
+                                # Swipe Cima -> Alternar Janela (Alt + Tab)
+                                pyautogui.hotkey('alt', 'tab')
+                                current_action_label = "ALTERNAR JANELAS (Alt+Tab)"
                                 label_color = (255, 200, 0)
                                 last_system_swipe_time = t_current
                                 palm_history.clear()
+                                open_palm_hold_start = t_current
+                                open_palm_hold_triggered = True
+                                swiped = True
                             else:
-                                # Swipe Down -> Show Desktop
+                                # Swipe Baixo -> Mostrar Desktop (Win + D)
                                 pyautogui.hotkey('win', 'd')
-                                current_action_label = "SHOW DESKTOP (Win+D)"
+                                current_action_label = "MOSTRAR DESKTOP (Win+D)"
                                 label_color = (255, 120, 0)
                                 last_system_swipe_time = t_current
                                 palm_history.clear()
+                                open_palm_hold_start = t_current
+                                open_palm_hold_triggered = True
+                                swiped = True
+
+                # Acao ao "Deixar a Mao Aberta Parada": apos 0.85s aciona Alt+Tab automaticamente!
+                if not swiped and hold_duration > 0.85 and not open_palm_hold_triggered:
+                    if (t_current - last_system_swipe_time) > SYSTEM_SWIPE_COOLDOWN:
+                        pyautogui.hotkey('alt', 'tab')
+                        current_action_label = "ALT + TAB (Mao Aberta Parada)!"
+                        label_color = (0, 255, 255)
+                        last_system_swipe_time = t_current
+                        open_palm_hold_triggered = True
 
                 if (t_current - last_system_swipe_time) < 0.6:
-                    pass  # Keep displaying the swipe label
+                    pass  # Mantem o rotulo da acao visivel
                 else:
-                    current_action_label = "OPEN PALM: SWIPE READY"
-                    label_color = (0, 255, 255)
+                    if hold_duration > 0.25 and not open_palm_hold_triggered:
+                        pct = min(100, int((hold_duration / 0.85) * 100))
+                        current_action_label = f"MAO ABERTA: Segure ({pct}%) p/ Alt+Tab ou Deslize p/ Pagina"
+                        label_color = (0, 255, 255)
+                    else:
+                        current_action_label = "MAO ABERTA: Deslize p/ Pagina ou Segure p/ Alt+Tab"
+                        label_color = (0, 255, 255)
 
                 is_scrolling = False
                 prev_scroll_y = None
@@ -479,7 +538,9 @@ def main():
             # -------------------------------------------------------------
             # FEATURE 2: MacBook Two-Finger Scroll
             # -------------------------------------------------------------
-            elif index_up and middle_up and not ring_up and not pinky_up and dist_thumb_index > (50 * scale_ratio):
+            elif index_up and middle_up and not ring_up and not pinky_up and dist_thumb_index > (35 * scale_ratio):
+                open_palm_hold_start = 0.0
+                open_palm_hold_triggered = False
                 palm_history.clear()
                 is_scrolling = True
                 avg_y = (index_px[1] + middle_px[1]) / 2.0
@@ -499,6 +560,8 @@ def main():
             # FEATURE 3: Pointer Tracking + Magnetic Lock Click
             # -------------------------------------------------------------
             else:
+                open_palm_hold_start = 0.0
+                open_palm_hold_triggered = False
                 palm_history.clear()
                 is_scrolling = False
                 prev_scroll_y = None
