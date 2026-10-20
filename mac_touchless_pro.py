@@ -17,6 +17,7 @@ import mediapipe as mp
 import pyautogui
 import math
 import time
+from camera_helper import overlay_senai_logo
 
 # Disable pyautogui safety delays for instantaneous response
 pyautogui.FAILSAFE = False
@@ -421,20 +422,21 @@ def main():
                                   mp_draw.DrawingSpec(color=(100, 100, 100), thickness=1))
 
         # ---------------------------------------------------------
-        # Apple-Style Translucent Top HUD
+        # Apple-Style Translucent Top HUD with SENAI branding
         # ---------------------------------------------------------
         hud_h = 55
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (CAM_W, hud_h), (18, 18, 18), -1)
         cv2.addWeighted(overlay, 0.78, frame, 0.22, 0, frame)
 
-        # Status text
-        cv2.putText(frame, "TOUCHLESS PRO V2", (18, 35),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.65, (255, 255, 255), 1)
-        cv2.putText(frame, current_action_label, (230, 35),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.58, label_color, 1)
-        cv2.putText(frame, f"{int(fps)} FPS", (CAM_W - 95, 35),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.55, (160, 160, 160), 1)
+        # Status text & SENAI Logo
+        overlay_senai_logo(frame, x=12, y=8, target_h=34)
+        cv2.putText(frame, "TOUCHLESS PRO", (168, 35),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.58, (255, 255, 255), 1)
+        cv2.putText(frame, current_action_label, (330, 35),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.55, label_color, 1)
+        cv2.putText(frame, f"{int(fps)} FPS", (CAM_W - 90, 35),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.50, (160, 160, 160), 1)
 
         cv2.imshow("MacBook Touchless Pro - Press 'q' to exit", frame)
 

@@ -28,6 +28,7 @@ import pyautogui
 import math
 import time
 from collections import deque
+from camera_helper import overlay_senai_logo
 
 # Disable safety delays for instantaneous response
 pyautogui.FAILSAFE = False
@@ -673,21 +674,22 @@ def main():
         # ---------------------------------------------------------
         # 4. Sci-Fi Cybernetic Top HUD Overlay
         # ---------------------------------------------------------
-        hud_h = 58
+        hud_h = 56
         overlay = frame.copy()
-        cv2.rectangle(overlay, (0, 0), (CAM_W, hud_h), (12, 16, 20), -1)
-        cv2.addWeighted(overlay, 0.82, frame, 0.18, 0, frame)
+        cv2.rectangle(overlay, (0, 0), (CAM_W, hud_h), (10, 14, 22), -1)
+        cv2.addWeighted(overlay, 0.85, frame, 0.15, 0, frame)
 
         # Neon Tech Line
         cv2.line(frame, (0, hud_h), (CAM_W, hud_h), (0, 200, 255), 1)
 
-        # Telemetry & Status
-        cv2.putText(frame, f"JARVIS OS [{cam_name}]", (14, 36),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.50, (0, 255, 255), 1)
-        cv2.putText(frame, current_action_label, (230, 36),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.55, label_color, 1)
-        cv2.putText(frame, f"{int(fps)} FPS", (CAM_W - 90, 36),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.52, (160, 160, 160), 1)
+        # Logo SENAI + Telemetria Jarvis
+        overlay_senai_logo(frame, x=12, y=8, target_h=34)
+        cv2.putText(frame, "JARVIS OS", (168, 36),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.52, (0, 255, 255), 1)
+        cv2.putText(frame, current_action_label, (285, 36),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.52, label_color, 1)
+        cv2.putText(frame, f"{int(fps)} FPS", (CAM_W - 85, 36),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.48, (160, 160, 160), 1)
 
         cv2.imshow("Jarvis Ironman Touchless Pro - Press 'q' to exit", frame)
 
