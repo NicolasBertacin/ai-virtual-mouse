@@ -50,7 +50,9 @@ while True:
             clocY = plocY + (y3 - plocY) / smoothening
 
             # Step7: Move Mouse
-            autopy.mouse.move(wScr - clocX, clocY)
+            target_x = max(0, min(int(wScr - clocX), int(wScr - 1)))
+            target_y = max(0, min(int(clocY), int(hScr - 1)))
+            autopy.mouse.move(target_x, target_y)
             cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
             plocX, plocY = clocX, clocY
 
@@ -67,10 +69,14 @@ while True:
 
     # Step11: Frame rate
     cTime = time.time()
-    fps = 1/(cTime-pTime)
+    fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 30
     pTime = cTime
-    cv2.putText(img, str(int(fps)), (28, 58), cv2.FONT_HERSHEY_PLAIN, 3, (255, 8, 8), 3)
+    cv2.putText(img, f"FPS: {int(fps)}", (28, 58), cv2.FONT_HERSHEY_PLAIN, 2, (255, 8, 8), 2)
 
     # Step12: Display
-    cv2.imshow("Image", img)
-    cv2.waitKey(1)
+    cv2.imshow("AI Virtual Mouse - Press q to exit", img)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
