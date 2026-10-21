@@ -117,69 +117,26 @@ def draw_energy_conduits(frame, center, fingertips, color=(0, 220, 255)):
         cv2.circle(frame, tip, 6, color, 1)
 
 
+from camera_utils import open_camera, get_default_camera_index
+
+
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
-    Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
+    Detects physical USB cameras on the system and prioritizes external USB webcams.
     Returns (cap, cam_name, cam_idx).
     """
-    devices = []
-    try:
-        from pygrabber.dshow_graph import FilterGraph
-        graph = FilterGraph()
-        devices = graph.get_input_devices()
-    except Exception:
-        devices = []
+    idx = get_default_camera_index()
+    return open_camera(idx, cam_w, cam_h)
 
-    # Query Windows WMI for hardware USB cameras
-    usb_names = []
-    try:
-        import subprocess
-        cmd = 'Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -eq "usbvideo" -or ($_.PNPClass -eq "Camera" -and $_.DeviceID -like "USB*") } | Select-Object -ExpandProperty Name'
-        res = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd], text=True, timeout=4)
-        usb_names = [line.strip() for line in res.strip().splitlines() if line.strip()]
-    except Exception:
-        usb_names = []
-
-    selected_idx = None
-    selected_name = "Camera USB"
-
-    # Match USB camera name with DirectShow devices
-    for idx, dev_name in enumerate(devices):
-        for usb_n in usb_names:
-            if usb_n.lower() in dev_name.lower() or dev_name.lower() in usb_n.lower():
-                selected_idx = idx
-                selected_name = dev_name
-                break
-        if selected_idx is not None:
-            break
-
-    # Fallback: ignore known virtual cameras
-    if selected_idx is None:
-        virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam']
-        for idx, dev_name in enumerate(devices):
-            if not any(k in dev_name.lower() for k in virtual_keywords):
-                selected_idx = idx
-                selected_name = dev_name
-                break
-
-    if selected_idx is None:
-        selected_idx = 0
-        if devices:
-            selected_name = devices[0]
-
-    # Open with DirectShow backend for fast hardware access on Windows
-    cap = cv2.VideoCapture(selected_idx, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture(selected_idx)
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
-    return cap, selected_name, selected_idx
 
 
 # ---------------------------------------------------------
 # 3. Main Touchless Controller
 # ---------------------------------------------------------
+
+from tracker_utils import UniversalHandsDetector
+
+
 def main():
     CAM_W, CAM_H = 640, 480
     cap, cam_name, cam_idx = get_usb_camera_cap(CAM_W, CAM_H)
@@ -194,9 +151,8 @@ def main():
     MARGIN_X = 110
     MARGIN_Y = 85
 
-    # MediaPipe Hands (Set to 2 hands for Dual-Hand Holographic Gestures)
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
+    # MediaPipe Hands (Compatible with Python 3.8 - 3.13 Tasks & Solutions API)
+    hands = UniversalHandsDetector(
         max_num_hands=2,
         min_detection_confidence=0.7,
         min_tracking_confidence=0.7
@@ -264,8 +220,11 @@ def main():
 
     while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None:
             break
+
+        if frame.shape[1] != CAM_W or frame.shape[0] != CAM_H:
+            frame = cv2.resize(frame, (CAM_W, CAM_H), interpolation=cv2.INTER_LINEAR)
 
         frame = cv2.flip(frame, 1)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

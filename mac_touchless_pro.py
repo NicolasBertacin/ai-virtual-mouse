@@ -62,60 +62,17 @@ class OneEuroFilter:
         return x_hat
 
 
+from camera_utils import open_camera, get_default_camera_index
+
+
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
-    Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
+    Detects physical USB cameras on the system and prioritizes external USB webcams.
     Returns (cap, cam_name, cam_idx).
     """
-    devices = []
-    try:
-        from pygrabber.dshow_graph import FilterGraph
-        graph = FilterGraph()
-        devices = graph.get_input_devices()
-    except Exception:
-        devices = []
+    idx = get_default_camera_index()
+    return open_camera(idx, cam_w, cam_h)
 
-    usb_names = []
-    try:
-        import subprocess
-        cmd = 'Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -eq "usbvideo" -or ($_.PNPClass -eq "Camera" -and $_.DeviceID -like "USB*") } | Select-Object -ExpandProperty Name'
-        res = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd], text=True, timeout=4)
-        usb_names = [line.strip() for line in res.strip().splitlines() if line.strip()]
-    except Exception:
-        usb_names = []
-
-    selected_idx = None
-    selected_name = "Camera USB"
-
-    for idx, dev_name in enumerate(devices):
-        for usb_n in usb_names:
-            if usb_n.lower() in dev_name.lower() or dev_name.lower() in usb_n.lower():
-                selected_idx = idx
-                selected_name = dev_name
-                break
-        if selected_idx is not None:
-            break
-
-    if selected_idx is None:
-        virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam']
-        for idx, dev_name in enumerate(devices):
-            if not any(k in dev_name.lower() for k in virtual_keywords):
-                selected_idx = idx
-                selected_name = dev_name
-                break
-
-    if selected_idx is None:
-        selected_idx = 0
-        if devices:
-            selected_name = devices[0]
-
-    cap = cv2.VideoCapture(selected_idx, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture(selected_idx)
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
-    return cap, selected_name, selected_idx
 
 
 # ---------------------------------------------------------
@@ -137,14 +94,13 @@ def main():
     MARGIN_X = 110
     MARGIN_Y = 90
 
-    # MediaPipe Hands
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
+    # MediaPipe Hands (Compatible with Python 3.8 - 3.13 Tasks & Solutions API)
+    from tracker_utils import UniversalHandsDetector, draw_hand_skeleton
+    hands = UniversalHandsDetector(
         max_num_hands=1,
         min_detection_confidence=0.7,
         min_tracking_confidence=0.7
     )
-    mp_draw = mp.solutions.drawing_utils
 
     # Filters for X and Y coordinates
     t_now = time.time()
@@ -193,8 +149,11 @@ def main():
 
     while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None:
             break
+
+        if frame.shape[1] != CAM_W or frame.shape[0] != CAM_H:
+            frame = cv2.resize(frame, (CAM_W, CAM_H), interpolation=cv2.INTER_LINEAR)
 
         # Mirror image for intuitive control
         frame = cv2.flip(frame, 1)
@@ -396,9 +355,7 @@ def main():
                 cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
 
             # Draw subtle skeleton
-            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
-                                  mp_draw.DrawingSpec(color=(60, 60, 60), thickness=1, circle_radius=2),
-                                  mp_draw.DrawingSpec(color=(100, 100, 100), thickness=1))
+            draw_hand_skeleton(frame, hand_landmarks, CAM_W, CAM_H)
 
         # ---------------------------------------------------------
         # Apple-Style Translucent Top HUD
