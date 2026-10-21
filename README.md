@@ -1,8 +1,15 @@
 # AI Virtual Mouse 🖱️🤖
 
-> Controle de mouse por gestos e inteligência artificial usando Python, OpenCV e MediaPipe em tempo real através da webcam.
+> Controle de mouse por gestos e inteligência artificial usando Python, OpenCV e MediaPipe em tempo real através da webcam com **autenticação biométrica por pulseira preta**.
 
 Para um guia passo a passo detalhado em português com resolução de erros, consulte o **[COMO_RODAR.md](COMO_RODAR.md)**.
+
+---
+
+## 🔒 Segurança: Liberação por Pulseira Preta
+O sistema conta com detecção de pulseira no pulso em tempo real:
+* **Apenas a mão com a pulseira preta tem acesso liberado** para mover o cursor, clicar e executar gestos.
+* Mãos sem a pulseira são automaticamente bloqueadas com badge visual vermelho (`BLOQUEADA: SEM PULSEIRA`).
 
 ---
 

@@ -62,6 +62,103 @@ class OneEuroFilter:
         return x_hat
 
 
+# ---------------------------------------------------------
+# Security Module: Black Wristband Hand Authorization
+# ---------------------------------------------------------
+def check_black_wristband(frame, landmarks, cam_w, cam_h):
+    """
+    Checks if a black wristband/bracelet is present near the wrist.
+    Returns:
+        is_authorized (bool): True if black bracelet is detected.
+        center_pt (tuple): (x, y) coordinates of the wristband zone.
+        radius (int): radius of the detection circle.
+        black_ratio (float): percentage of dark pixels detected.
+    """
+    wrist_x = int(landmarks[0].x * cam_w)
+    wrist_y = int(landmarks[0].y * cam_h)
+    middle_mcp_x = int(landmarks[9].x * cam_w)
+    middle_mcp_y = int(landmarks[9].y * cam_h)
+
+    hand_scale = max(40.0, math.hypot(wrist_x - middle_mcp_x, wrist_y - middle_mcp_y))
+
+    # Vector from middle knuckle towards wrist (along forearm direction)
+    dir_x = wrist_x - middle_mcp_x
+    dir_y = wrist_y - middle_mcp_y
+    norm = math.hypot(dir_x, dir_y)
+    if norm > 1e-3:
+        ux, uy = dir_x / norm, dir_y / norm
+    else:
+        ux, uy = 0.0, 1.0
+
+    zone_x = int(wrist_x + ux * (0.16 * hand_scale))
+    zone_y = int(wrist_y + uy * (0.16 * hand_scale))
+    radius = int(max(16, 0.30 * hand_scale))
+
+    x1 = max(0, zone_x - radius)
+    x2 = min(cam_w, zone_x + radius)
+    y1 = max(0, zone_y - radius)
+    y2 = min(cam_h, zone_y + radius)
+
+    if (x2 - x1) < 8 or (y2 - y1) < 8:
+        return False, (wrist_x, wrist_y), radius, 0.0
+
+    roi_bgr = frame[y1:y2, x1:x2]
+    roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
+
+    yy, xx = np.ogrid[:y2 - y1, :x2 - x1]
+    center_roi_x = zone_x - x1
+    center_roi_y = zone_y - y1
+    circle_mask = ((xx - center_roi_x) ** 2 + (yy - center_roi_y) ** 2) <= (radius ** 2)
+
+    total_circle_pixels = int(np.sum(circle_mask))
+    if total_circle_pixels < 20:
+        return False, (zone_x, zone_y), radius, 0.0
+
+    palm_x = int((wrist_x + middle_mcp_x) / 2)
+    palm_y = int((wrist_y + middle_mcp_y) / 2)
+    px1 = max(0, palm_x - 8)
+    px2 = min(cam_w, palm_x + 8)
+    py1 = max(0, palm_y - 8)
+    py2 = min(cam_h, palm_y + 8)
+
+    if (px2 - px1) > 4 and (py2 - py1) > 4:
+        palm_hsv = cv2.cvtColor(frame[py1:py2, px1:px2], cv2.COLOR_BGR2HSV)
+        palm_val = float(np.mean(palm_hsv[:, :, 2]))
+    else:
+        palm_val = 140.0
+
+    black_thresh_v = min(85.0, max(45.0, palm_val * 0.58))
+
+    val_channel = roi_hsv[:, :, 2]
+    dark_pixels = (val_channel < black_thresh_v) & circle_mask
+    black_count = int(np.sum(dark_pixels))
+    black_ratio = black_count / float(total_circle_pixels)
+
+    is_authorized = (black_ratio >= 0.10 and black_count >= 20)
+
+    return is_authorized, (zone_x, zone_y), radius, black_ratio
+
+
+def draw_wristband_badge(frame, center_pt, radius, is_authorized, black_ratio):
+    """Draws a clean authorization indicator at the wrist."""
+    cx, cy = center_pt
+    color = (0, 255, 120) if is_authorized else (0, 50, 255)
+
+    cv2.circle(frame, (cx, cy), radius, color, 2)
+    if is_authorized:
+        cv2.circle(frame, (cx, cy), int(radius * 0.5), (0, 255, 200), 1)
+        tag = f"LIBERADA ({int(black_ratio * 100)}%)"
+        cv2.putText(frame, tag, (cx - 45, cy + radius + 18),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 255, 120), 1)
+    else:
+        cv2.line(frame, (cx - 6, cy - 6), (cx + 6, cy + 6), (0, 0, 255), 2)
+        cv2.line(frame, (cx + 6, cy - 6), (cx - 6, cy + 6), (0, 0, 255), 2)
+        tag = "BLOQUEADA: SEM PULSEIRA"
+        cv2.putText(frame, tag, (cx - 75, cy + radius + 18),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 50, 255), 1)
+
+
+
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
     Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
@@ -140,7 +237,7 @@ def main():
     # MediaPipe Hands
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
-        max_num_hands=1,
+        max_num_hands=2,
         min_detection_confidence=0.7,
         min_tracking_confidence=0.7
     )
@@ -214,191 +311,218 @@ def main():
                       (60, 60, 60), 1)
 
         if results.multi_hand_landmarks:
-            hand_landmarks = results.multi_hand_landmarks[0]
-            landmarks = hand_landmarks.landmark
+            authorized_hand = None
+            for hand_lms in results.multi_hand_landmarks:
+                is_auth, band_pt, band_r, b_ratio = check_black_wristband(
+                    frame, hand_lms.landmark, CAM_W, CAM_H
+                )
+                draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio)
+                if is_auth and authorized_hand is None:
+                    authorized_hand = hand_lms
 
-            def get_px(idx):
-                return int(landmarks[idx].x * CAM_W), int(landmarks[idx].y * CAM_H)
-
-            wrist_px = get_px(0)
-            thumb_px = get_px(4)        # Thumb Tip
-            index_px = get_px(8)        # Index Tip
-            middle_px = get_px(12)      # Middle Tip
-            ring_px = get_px(16)        # Ring Tip
-            pinky_px = get_px(20)       # Pinky Tip
-
-            index_pip = get_px(6)       # Index Knuckle PIP
-            middle_pip = get_px(10)     # Middle Knuckle PIP
-            ring_pip = get_px(14)       # Ring Knuckle PIP
-            pinky_pip = get_px(18)      # Pinky Knuckle PIP
-
-            # Finger extension checks
-            index_up = index_px[1] < index_pip[1]
-            middle_up = middle_px[1] < middle_pip[1]
-            ring_up = ring_px[1] < ring_pip[1]
-            pinky_up = pinky_px[1] < pinky_pip[1]
-
-            # Hand scale normalization (Wrist to Middle Knuckle)
-            hand_scale = max(60, math.hypot(wrist_px[0] - middle_pip[0], wrist_px[1] - middle_pip[1]))
-
-            # Distances
-            dist_thumb_index = math.hypot(thumb_px[0] - index_px[0], thumb_px[1] - index_px[1])
-            dist_thumb_middle = math.hypot(thumb_px[0] - middle_px[0], thumb_px[1] - middle_px[1])
-
-            # Adaptive dynamic thresholds based on hand distance to camera
-            # scale ~ 120 -> pre_lock ~ 54, click ~ 34, release ~ 58
-            scale_ratio = hand_scale / 120.0
-            PRE_LOCK_DIST = int(52 * scale_ratio)       # Freeze cursor early so hand motion doesn't slip!
-            PINCH_CLICK_DIST = int(34 * scale_ratio)    # Contact point for click
-            RELEASE_DIST = int(58 * scale_ratio)        # Unfreeze distance
-
-            # -------------------------------------------------------------
-            # GESTURE 1: MacBook Two-Finger Scroll
-            # -------------------------------------------------------------
-            two_finger_mode = index_up and middle_up and not ring_up and not pinky_up and dist_thumb_index > (55 * scale_ratio)
-
-            if two_finger_mode:
-                is_scrolling = True
-                avg_y = (index_px[1] + middle_px[1]) / 2.0
-
-                if prev_scroll_y is not None:
-                    dy = avg_y - prev_scroll_y
-                    if abs(dy) > 1.5:
-                        scroll_amount = -int(dy * 15)
-                        pyautogui.scroll(scroll_amount)
-
-                prev_scroll_y = avg_y
-                current_action_label = "MacBook Two-Finger Scroll"
-                label_color = (0, 215, 255)
-
-                cv2.line(frame, index_px, middle_px, (0, 215, 255), 3)
-
-            else:
+            if authorized_hand is None:
+                if is_dragging:
+                    pyautogui.mouseUp()
+                    is_dragging = False
+                is_locked = False
                 is_scrolling = False
-                prev_scroll_y = None
+                current_action_label = "ACESSO NEGADO: USE A PULSEIRA PRETA"
+                label_color = (0, 40, 255)
+            else:
+                hand_landmarks = authorized_hand
+                landmarks = hand_landmarks.landmark
 
-                # ---------------------------------------------------------
-                # GESTURE 2: Pointer Tracking (Stabilized Anchor)
-                # ---------------------------------------------------------
-                # Use a blended coordinate (75% tip, 25% knuckle) for higher mechanical stability
-                stable_x = 0.75 * index_px[0] + 0.25 * index_pip[0]
-                stable_y = 0.75 * index_px[1] + 0.25 * index_pip[1]
+                def get_px(idx):
+                    return int(landmarks[idx].x * CAM_W), int(landmarks[idx].y * CAM_H)
 
-                raw_x = np.interp(stable_x, [MARGIN_X, CAM_W - MARGIN_X], [0, SCREEN_W])
-                raw_y = np.interp(stable_y, [MARGIN_Y, CAM_H - MARGIN_Y], [0, SCREEN_H])
+                wrist_px = get_px(0)
+                thumb_px = get_px(4)        # Thumb Tip
+                index_px = get_px(8)        # Index Tip
+                middle_px = get_px(12)      # Middle Tip
+                ring_px = get_px(16)        # Ring Tip
+                pinky_px = get_px(20)       # Pinky Tip
 
-                smooth_x = filter_x.filter(t_current, raw_x)
-                smooth_y = filter_y.filter(t_current, raw_y)
-                smooth_x = max(0, min(SCREEN_W - 1, smooth_x))
-                smooth_y = max(0, min(SCREEN_H - 1, smooth_y))
+                index_pip = get_px(6)       # Index Knuckle PIP
+                middle_pip = get_px(10)     # Middle Knuckle PIP
+                ring_pip = get_px(14)       # Ring Knuckle PIP
+                pinky_pip = get_px(18)      # Pinky Knuckle PIP
 
-                # ---------------------------------------------------------
-                # GESTURE 3: Magnetic Target Lock & Anti-Slip Click
-                # ---------------------------------------------------------
-                # 1. Engage Target Lock when fingers start approaching
-                if not is_locked and not is_right_pinching:
-                    if dist_thumb_index < PRE_LOCK_DIST:
-                        is_locked = True
-                        locked_screen_pos = (smooth_x, smooth_y)
-                        locked_cam_pos = index_px
-                        lock_start_time = t_current
-                        has_clicked_in_lock = False
+                # Finger extension checks
+                index_up = index_px[1] < index_pip[1]
+                middle_up = middle_px[1] < middle_pip[1]
+                ring_up = ring_px[1] < ring_pip[1]
+                pinky_up = pinky_px[1] < pinky_pip[1]
 
-                if is_locked:
-                    lock_duration = t_current - lock_start_time
+                # Hand scale normalization (Wrist to Middle Knuckle)
+                hand_scale = max(60, math.hypot(wrist_px[0] - middle_pip[0], wrist_px[1] - middle_pip[1]))
 
-                    # A. While in lock, FREEZE the cursor on the target!
-                    if not is_dragging:
-                        pyautogui.moveTo(locked_screen_pos[0], locked_screen_pos[1])
-                        current_action_label = "[TARGET LOCKED] Ready to Click"
-                        label_color = (0, 255, 255)
+                # Distances
+                dist_thumb_index = math.hypot(thumb_px[0] - index_px[0], thumb_px[1] - index_px[1])
+                dist_thumb_middle = math.hypot(thumb_px[0] - middle_px[0], thumb_px[1] - middle_px[1])
 
-                    # B. Contact reached -> Trigger Click!
-                    if dist_thumb_index < PINCH_CLICK_DIST and not has_clicked_in_lock:
-                        has_clicked_in_lock = True
-                        if (t_current - last_click_time) < DOUBLE_CLICK_GAP:
-                            pyautogui.doubleClick()
-                            current_action_label = "Double Click!"
-                            label_color = (255, 0, 255)
-                            last_click_time = 0.0
-                        else:
-                            pyautogui.click()
-                            current_action_label = "Click!"
-                            label_color = (0, 255, 0)
-                            last_click_time = t_current
+                # Adaptive dynamic thresholds based on hand distance to camera
+                # scale ~ 120 -> pre_lock ~ 54, click ~ 34, release ~ 58
+                scale_ratio = hand_scale / 120.0
+                PRE_LOCK_DIST = int(52 * scale_ratio)       # Freeze cursor early so hand motion doesn't slip!
+                PINCH_CLICK_DIST = int(34 * scale_ratio)    # Contact point for click
+                RELEASE_DIST = int(58 * scale_ratio)        # Unfreeze distance
 
-                    # C. Check for Drag & Drop (Holding pinch past delay)
-                    if has_clicked_in_lock and not is_dragging:
-                        if lock_duration > DRAG_HOLD_DELAY and dist_thumb_index < PINCH_CLICK_DIST + 8:
-                            is_dragging = True
-                            pyautogui.mouseDown()
+                # -------------------------------------------------------------
+                # GESTURE 1: MacBook Two-Finger Scroll
+                # -------------------------------------------------------------
+                two_finger_mode = index_up and middle_up and not ring_up and not pinky_up and dist_thumb_index > (55 * scale_ratio)
+
+                if two_finger_mode:
+                    is_scrolling = True
+                    avg_y = (index_px[1] + middle_px[1]) / 2.0
+
+                    if prev_scroll_y is not None:
+                        dy = avg_y - prev_scroll_y
+                        if abs(dy) > 1.5:
+                            scroll_amount = -int(dy * 15)
+                            pyautogui.scroll(scroll_amount)
+
+                    prev_scroll_y = avg_y
+                    current_action_label = "MacBook Two-Finger Scroll"
+                    label_color = (0, 215, 255)
+
+                    cv2.line(frame, index_px, middle_px, (0, 215, 255), 3)
+
+                else:
+                    is_scrolling = False
+                    prev_scroll_y = None
+
+                    # ---------------------------------------------------------
+                    # GESTURE 2: Pointer Tracking (Stabilized Anchor)
+                    # ---------------------------------------------------------
+                    # Use a blended coordinate (75% tip, 25% knuckle) for higher mechanical stability
+                    stable_x = 0.75 * index_px[0] + 0.25 * index_pip[0]
+                    stable_y = 0.75 * index_px[1] + 0.25 * index_pip[1]
+
+                    raw_x = np.interp(stable_x, [MARGIN_X, CAM_W - MARGIN_X], [0, SCREEN_W])
+                    raw_y = np.interp(stable_y, [MARGIN_Y, CAM_H - MARGIN_Y], [0, SCREEN_H])
+
+                    smooth_x = filter_x.filter(t_current, raw_x)
+                    smooth_y = filter_y.filter(t_current, raw_y)
+                    smooth_x = max(0, min(SCREEN_W - 1, smooth_x))
+                    smooth_y = max(0, min(SCREEN_H - 1, smooth_y))
+
+                    # ---------------------------------------------------------
+                    # GESTURE 3: Magnetic Target Lock & Anti-Slip Click
+                    # ---------------------------------------------------------
+                    # 1. Engage Target Lock when fingers start approaching
+                    if not is_locked and not is_right_pinching:
+                        if dist_thumb_index < PRE_LOCK_DIST:
+                            is_locked = True
+                            locked_screen_pos = (smooth_x, smooth_y)
+                            locked_cam_pos = index_px
+                            lock_start_time = t_current
+                            has_clicked_in_lock = False
+
+                    if is_locked:
+                        lock_duration = t_current - lock_start_time
+
+                        # A. While in lock, FREEZE the cursor on the target!
+                        if not is_dragging:
+                            pyautogui.moveTo(locked_screen_pos[0], locked_screen_pos[1])
+                            current_action_label = "[TARGET LOCKED] Ready to Click"
+                            label_color = (0, 255, 255)
+
+                        # B. Contact reached -> Trigger Click!
+                        if dist_thumb_index < PINCH_CLICK_DIST and not has_clicked_in_lock:
+                            has_clicked_in_lock = True
+                            if (t_current - last_click_time) < DOUBLE_CLICK_GAP:
+                                pyautogui.doubleClick()
+                                current_action_label = "Double Click!"
+                                label_color = (255, 0, 255)
+                                last_click_time = 0.0
+                            else:
+                                pyautogui.click()
+                                current_action_label = "Click!"
+                                label_color = (0, 255, 0)
+                                last_click_time = t_current
+
+                        # C. Check for Drag & Drop (Holding pinch past delay)
+                        if has_clicked_in_lock and not is_dragging:
+                            if lock_duration > DRAG_HOLD_DELAY and dist_thumb_index < PINCH_CLICK_DIST + 8:
+                                is_dragging = True
+                                pyautogui.mouseDown()
+                                current_action_label = "Dragging Window / Item"
+                                label_color = (255, 120, 0)
+
+                        # D. If dragging: allow cursor to move with hand while holding mouseDown
+                        if is_dragging:
+                            pyautogui.moveTo(smooth_x, smooth_y)
                             current_action_label = "Dragging Window / Item"
                             label_color = (255, 120, 0)
 
-                    # D. If dragging: allow cursor to move with hand while holding mouseDown
-                    if is_dragging:
-                        pyautogui.moveTo(smooth_x, smooth_y)
-                        current_action_label = "Dragging Window / Item"
-                        label_color = (255, 120, 0)
+                        # E. Check for Release / Lock Exit
+                        if dist_thumb_index > RELEASE_DIST:
+                            if is_dragging:
+                                pyautogui.mouseUp()
+                                is_dragging = False
+                                current_action_label = "Dropped"
+                            is_locked = False
+                            has_clicked_in_lock = False
 
-                    # E. Check for Release / Lock Exit
-                    if dist_thumb_index > RELEASE_DIST:
-                        if is_dragging:
-                            pyautogui.mouseUp()
-                            is_dragging = False
-                            current_action_label = "Dropped"
-                        is_locked = False
-                        has_clicked_in_lock = False
-
-                else:
-                    # Normal Cursor Tracking when not locked
-                    pyautogui.moveTo(smooth_x, smooth_y)
-                    current_action_label = "Pointer Tracking"
-                    label_color = (200, 200, 200)
-
-                # ---------------------------------------------------------
-                # GESTURE 4: Right Click (Thumb + Middle Pinch)
-                # ---------------------------------------------------------
-                if not is_locked and not is_dragging:
-                    if not is_right_pinching:
-                        if dist_thumb_middle < (32 * scale_ratio) and dist_thumb_index > (45 * scale_ratio):
-                            is_right_pinching = True
-                            right_pinch_start = t_current
                     else:
-                        if dist_thumb_middle > (45 * scale_ratio):
-                            is_right_pinching = False
-                            if (t_current - right_pinch_start) < 0.45:
-                                pyautogui.rightClick()
-                                current_action_label = "Right Click"
-                                label_color = (0, 100, 255)
+                        # Normal Cursor Tracking when not locked
+                        pyautogui.moveTo(smooth_x, smooth_y)
+                        current_action_label = "Pointer Tracking"
+                        label_color = (200, 200, 200)
 
-                # ---------------------------------------------------------
-                # Visual Reticle & Magnetic Lock Crosshair
-                # ---------------------------------------------------------
-                if is_locked:
-                    # Draw Magnetic Lock Crosshair on target
-                    cx, cy = locked_cam_pos
-                    cv2.circle(frame, (cx, cy), 18, (0, 255, 255), 2)
-                    cv2.line(frame, (cx - 24, cy), (cx + 24, cy), (0, 255, 255), 1)
-                    cv2.line(frame, (cx, cy - 24), (cx, cy + 24), (0, 255, 255), 1)
+                    # ---------------------------------------------------------
+                    # GESTURE 4: Right Click (Thumb + Middle Pinch)
+                    # ---------------------------------------------------------
+                    if not is_locked and not is_dragging:
+                        if not is_right_pinching:
+                            if dist_thumb_middle < (32 * scale_ratio) and dist_thumb_index > (45 * scale_ratio):
+                                is_right_pinching = True
+                                right_pinch_start = t_current
+                        else:
+                            if dist_thumb_middle > (45 * scale_ratio):
+                                is_right_pinching = False
+                                if (t_current - right_pinch_start) < 0.45:
+                                    pyautogui.rightClick()
+                                    current_action_label = "Right Click"
+                                    label_color = (0, 100, 255)
 
-                # Dynamic Halo that contracts as thumb closes in
-                pinch_progress = max(0.0, min(1.0, (dist_thumb_index - PINCH_CLICK_DIST) / max(1, (PRE_LOCK_DIST - PINCH_CLICK_DIST))))
-                ring_radius = int(8 + pinch_progress * 18)
-                ring_color = (0, 255, 0) if dist_thumb_index < PINCH_CLICK_DIST else ((0, 255, 255) if is_locked else (255, 200, 0))
+                    # ---------------------------------------------------------
+                    # Visual Reticle & Magnetic Lock Crosshair
+                    # ---------------------------------------------------------
+                    if is_locked:
+                        # Draw Magnetic Lock Crosshair on target
+                        cx, cy = locked_cam_pos
+                        cv2.circle(frame, (cx, cy), 18, (0, 255, 255), 2)
+                        cv2.line(frame, (cx - 24, cy), (cx + 24, cy), (0, 255, 255), 1)
+                        cv2.line(frame, (cx, cy - 24), (cx, cy + 24), (0, 255, 255), 1)
 
-                mid_x = int((thumb_px[0] + index_px[0]) / 2)
-                mid_y = int((thumb_px[1] + index_px[1]) / 2)
+                    # Dynamic Halo that contracts as thumb closes in
+                    pinch_progress = max(0.0, min(1.0, (dist_thumb_index - PINCH_CLICK_DIST) / max(1, (PRE_LOCK_DIST - PINCH_CLICK_DIST))))
+                    ring_radius = int(8 + pinch_progress * 18)
+                    ring_color = (0, 255, 0) if dist_thumb_index < PINCH_CLICK_DIST else ((0, 255, 255) if is_locked else (255, 200, 0))
 
-                cv2.line(frame, thumb_px, index_px, (160, 160, 160), 1)
-                cv2.circle(frame, index_px, 6, (0, 255, 255), -1)
-                cv2.circle(frame, thumb_px, 5, (255, 120, 0), -1)
-                cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
+                    mid_x = int((thumb_px[0] + index_px[0]) / 2)
+                    mid_y = int((thumb_px[1] + index_px[1]) / 2)
 
-            # Draw subtle skeleton
-            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
-                                  mp_draw.DrawingSpec(color=(60, 60, 60), thickness=1, circle_radius=2),
-                                  mp_draw.DrawingSpec(color=(100, 100, 100), thickness=1))
+                    cv2.line(frame, thumb_px, index_px, (160, 160, 160), 1)
+                    cv2.circle(frame, index_px, 6, (0, 255, 255), -1)
+                    cv2.circle(frame, thumb_px, 5, (255, 120, 0), -1)
+                    cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
+
+                # Draw subtle skeleton
+                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
+                                      mp_draw.DrawingSpec(color=(60, 60, 60), thickness=1, circle_radius=2),
+                                      mp_draw.DrawingSpec(color=(100, 100, 100), thickness=1))
+
+        else:
+            if is_dragging:
+                pyautogui.mouseUp()
+                is_dragging = False
+            is_locked = False
+            is_scrolling = False
+            current_action_label = "STANDBY: COLOQUE A MAO COM PULSEIRA"
+            label_color = (130, 130, 130)
 
         # ---------------------------------------------------------
         # Apple-Style Translucent Top HUD

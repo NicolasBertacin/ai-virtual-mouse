@@ -117,6 +117,113 @@ def draw_energy_conduits(frame, center, fingertips, color=(0, 220, 255)):
         cv2.circle(frame, tip, 6, color, 1)
 
 
+# ---------------------------------------------------------
+# Security Module: Black Wristband Hand Authorization
+# ---------------------------------------------------------
+def check_black_wristband(frame, landmarks, cam_w, cam_h):
+    """
+    Checks if a black wristband/bracelet is present near the wrist.
+    Returns:
+        is_authorized (bool): True if black bracelet is detected.
+        center_pt (tuple): (x, y) coordinates of the wristband zone.
+        radius (int): radius of the detection circle.
+        black_ratio (float): percentage of dark pixels detected.
+    """
+    wrist_x = int(landmarks[0].x * cam_w)
+    wrist_y = int(landmarks[0].y * cam_h)
+    middle_mcp_x = int(landmarks[9].x * cam_w)
+    middle_mcp_y = int(landmarks[9].y * cam_h)
+
+    hand_scale = max(40.0, math.hypot(wrist_x - middle_mcp_x, wrist_y - middle_mcp_y))
+
+    # Vector from middle knuckle towards wrist (along forearm direction)
+    dir_x = wrist_x - middle_mcp_x
+    dir_y = wrist_y - middle_mcp_y
+    norm = math.hypot(dir_x, dir_y)
+    if norm > 1e-3:
+        ux, uy = dir_x / norm, dir_y / norm
+    else:
+        ux, uy = 0.0, 1.0
+
+    # Inspection zone centered slightly down the wrist/forearm
+    zone_x = int(wrist_x + ux * (0.16 * hand_scale))
+    zone_y = int(wrist_y + uy * (0.16 * hand_scale))
+    radius = int(max(16, 0.30 * hand_scale))
+
+    x1 = max(0, zone_x - radius)
+    x2 = min(cam_w, zone_x + radius)
+    y1 = max(0, zone_y - radius)
+    y2 = min(cam_h, zone_y + radius)
+
+    if (x2 - x1) < 8 or (y2 - y1) < 8:
+        return False, (wrist_x, wrist_y), radius, 0.0
+
+    roi_bgr = frame[y1:y2, x1:x2]
+    roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
+
+    yy, xx = np.ogrid[:y2 - y1, :x2 - x1]
+    center_roi_x = zone_x - x1
+    center_roi_y = zone_y - y1
+    circle_mask = ((xx - center_roi_x) ** 2 + (yy - center_roi_y) ** 2) <= (radius ** 2)
+
+    total_circle_pixels = int(np.sum(circle_mask))
+    if total_circle_pixels < 20:
+        return False, (zone_x, zone_y), radius, 0.0
+
+    # Sample palm brightness for adaptive ambient lighting comparison
+    palm_x = int((wrist_x + middle_mcp_x) / 2)
+    palm_y = int((wrist_y + middle_mcp_y) / 2)
+    px1 = max(0, palm_x - 8)
+    px2 = min(cam_w, palm_x + 8)
+    py1 = max(0, palm_y - 8)
+    py2 = min(cam_h, palm_y + 8)
+
+    if (px2 - px1) > 4 and (py2 - py1) > 4:
+        palm_hsv = cv2.cvtColor(frame[py1:py2, px1:px2], cv2.COLOR_BGR2HSV)
+        palm_val = float(np.mean(palm_hsv[:, :, 2]))
+    else:
+        palm_val = 140.0
+
+    # Dynamic threshold: black wristband is significantly darker than skin
+    black_thresh_v = min(85.0, max(45.0, palm_val * 0.58))
+
+    val_channel = roi_hsv[:, :, 2]
+    dark_pixels = (val_channel < black_thresh_v) & circle_mask
+    black_count = int(np.sum(dark_pixels))
+    black_ratio = black_count / float(total_circle_pixels)
+
+    # Authorized if at least 10% of pixels in wrist zone are dark and count >= 20
+    is_authorized = (black_ratio >= 0.10 and black_count >= 20)
+
+    return is_authorized, (zone_x, zone_y), radius, black_ratio
+
+
+def draw_wristband_badge(frame, center_pt, radius, is_authorized, black_ratio, angle_deg):
+    """Draws a cybernetic security authorization badge at the wrist."""
+    cx, cy = center_pt
+    color = (0, 255, 120) if is_authorized else (0, 40, 255)
+
+    cv2.circle(frame, (cx, cy), radius, color, 2)
+    for i in range(4):
+        theta = math.radians(angle_deg * 2 + i * 90)
+        tx = int(cx + (radius + 5) * math.cos(theta))
+        ty = int(cy + (radius + 5) * math.sin(theta))
+        cv2.line(frame, (cx, cy), (tx, ty), color, 1)
+
+    if is_authorized:
+        cv2.circle(frame, (cx, cy), int(radius * 0.6), (0, 255, 200), 1)
+        tag = f"LIBERADA [OK {int(black_ratio * 100)}%]"
+        cv2.putText(frame, tag, (cx - 55, cy + radius + 18),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 255, 120), 1)
+    else:
+        cv2.line(frame, (cx - 6, cy - 6), (cx + 6, cy + 6), (0, 0, 255), 2)
+        cv2.line(frame, (cx + 6, cy - 6), (cx - 6, cy + 6), (0, 0, 255), 2)
+        tag = "BLOQUEADA: SEM PULSEIRA"
+        cv2.putText(frame, tag, (cx - 75, cy + radius + 18),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 50, 255), 1)
+
+
+
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
     Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
@@ -245,6 +352,8 @@ def main():
     print("\n" + "="*65)
     print(" IRONMAN TOUCHLESS PRO - JARVIS INTERFACE ACTIVE")
     print(f" Camera Conectada: {cam_name} (USB DirectShow Indice {cam_idx})")
+    print(" [SEGURANCA BIOMETRICA ATIVA]")
+    print("  -> APENAS A MAO COM A PULSEIRA PRETA TERA CONTROLE DO SISTEMA!")
     print("="*65)
     print(" [SISTEMA MACBOOK / ANDREW'S LAB]")
     print("  - Cursor: Aponte com o indicador (Filtro One Euro)")
@@ -287,11 +396,26 @@ def main():
         hud_angle = (t_current * 100) % 360  # Continuous rotation for HUD rings
 
         # ---------------------------------------------------------
+        # Security & Wristband Authorization Check
+        # ---------------------------------------------------------
+        authorized_hands = []
+        if num_hands > 0:
+            for hand_idx, hand_lms in enumerate(results.multi_hand_landmarks):
+                is_auth, band_pt, band_r, b_ratio = check_black_wristband(
+                    frame, hand_lms.landmark, CAM_W, CAM_H
+                )
+                draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio, hud_angle)
+                if is_auth:
+                    authorized_hands.append(hand_lms)
+
+        num_auth = len(authorized_hands)
+
+        # ---------------------------------------------------------
         # MODE A: DUAL-HAND INTERACTION (Tony Stark Hologram Mode)
         # ---------------------------------------------------------
-        if num_hands >= 2:
-            hand1 = results.multi_hand_landmarks[0].landmark
-            hand2 = results.multi_hand_landmarks[1].landmark
+        if num_auth >= 2:
+            hand1 = authorized_hands[0].landmark
+            hand2 = authorized_hands[1].landmark
 
             def get_hand_pts(lms):
                 wrist = (int(lms[0].x * CAM_W), int(lms[0].y * CAM_H))
@@ -362,10 +486,11 @@ def main():
 
         # ---------------------------------------------------------
         # MODE B: SINGLE-HAND PRECISION & SYSTEM PRODUCTIVITY
+        # Apenas a mão COM pulseira preta autorizada pode mexer
         # ---------------------------------------------------------
-        elif num_hands == 1:
+        elif num_auth == 1:
             prev_dual_pinch_dist = None
-            hand_landmarks = results.multi_hand_landmarks[0]
+            hand_landmarks = authorized_hands[0]
             landmarks = hand_landmarks.landmark
 
             def get_px(idx):
@@ -603,9 +728,19 @@ def main():
                 cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
 
         else:
+            if is_dragging:
+                pyautogui.mouseUp()
+                is_dragging = False
+            is_locked = False
             palm_history.clear()
-            current_action_label = "STANDBY: SHOW HAND"
-            label_color = (130, 130, 130)
+            prev_dual_pinch_dist = None
+
+            if num_hands > 0:
+                current_action_label = "ACESSO NEGADO: USE A PULSEIRA PRETA"
+                label_color = (0, 40, 255)
+            else:
+                current_action_label = "STANDBY: COLOQUE A MAO COM PULSEIRA"
+                label_color = (130, 130, 130)
 
         # ---------------------------------------------------------
         # 4. Sci-Fi Cybernetic Top HUD Overlay
