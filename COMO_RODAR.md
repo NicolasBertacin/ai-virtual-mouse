@@ -3,7 +3,7 @@
 Este guia detalha o passo a passo para configurar o ambiente, instalar as dependências corretas e executar qualquer uma das três versões do mouse virtual com inteligência artificial e visão computacional.
 
 ---
-
+##
 ## 📋 Sumário
 1. [Visão Geral dos Scripts](#-visão-geral-dos-scripts)
 2. [Requisitos Importantes (Atenção ao Python)](#-requisitos-importantes)
