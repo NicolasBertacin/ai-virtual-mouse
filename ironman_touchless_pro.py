@@ -201,6 +201,8 @@ def main():
     print("\n" + "="*65)
     print(" IRONMAN TOUCHLESS PRO - JARVIS INTERFACE ACTIVE")
     print(f" Camera Conectada: {cam_name} (USB DirectShow Indice {cam_idx})")
+    print(" [SEGURANCA BIOMETRICA ATIVA]")
+    print("  -> APENAS A MAO COM A PULSEIRA PRETA TERA CONTROLE DO SISTEMA!")
     print("="*65)
     print(" [SISTEMA MACBOOK / ANDREW'S LAB]")
     print("  - Cursor: Aponte com o indicador (Filtro One Euro)")
@@ -246,11 +248,26 @@ def main():
         hud_angle = (t_current * 100) % 360  # Continuous rotation for HUD rings
 
         # ---------------------------------------------------------
+        # Security & Wristband Authorization Check
+        # ---------------------------------------------------------
+        authorized_hands = []
+        if num_hands > 0:
+            for hand_idx, hand_lms in enumerate(results.multi_hand_landmarks):
+                is_auth, band_pt, band_r, b_ratio = check_black_wristband(
+                    frame, hand_lms.landmark, CAM_W, CAM_H
+                )
+                draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio, hud_angle)
+                if is_auth:
+                    authorized_hands.append(hand_lms)
+
+        num_auth = len(authorized_hands)
+
+        # ---------------------------------------------------------
         # MODE A: DUAL-HAND INTERACTION (Tony Stark Hologram Mode)
         # ---------------------------------------------------------
-        if num_hands >= 2:
-            hand1 = results.multi_hand_landmarks[0].landmark
-            hand2 = results.multi_hand_landmarks[1].landmark
+        if num_auth >= 2:
+            hand1 = authorized_hands[0].landmark
+            hand2 = authorized_hands[1].landmark
 
             def get_hand_pts(lms):
                 wrist = (int(lms[0].x * CAM_W), int(lms[0].y * CAM_H))
@@ -321,10 +338,11 @@ def main():
 
         # ---------------------------------------------------------
         # MODE B: SINGLE-HAND PRECISION & SYSTEM PRODUCTIVITY
+        # Apenas a mão COM pulseira preta autorizada pode mexer
         # ---------------------------------------------------------
-        elif num_hands == 1:
+        elif num_auth == 1:
             prev_dual_pinch_dist = None
-            hand_landmarks = results.multi_hand_landmarks[0]
+            hand_landmarks = authorized_hands[0]
             landmarks = hand_landmarks.landmark
 
             def get_px(idx):
@@ -562,9 +580,19 @@ def main():
                 cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
 
         else:
+            if is_dragging:
+                pyautogui.mouseUp()
+                is_dragging = False
+            is_locked = False
             palm_history.clear()
-            current_action_label = "STANDBY: SHOW HAND"
-            label_color = (130, 130, 130)
+            prev_dual_pinch_dist = None
+
+            if num_hands > 0:
+                current_action_label = "ACESSO NEGADO: USE A PULSEIRA PRETA"
+                label_color = (0, 40, 255)
+            else:
+                current_action_label = "STANDBY: COLOQUE A MAO COM PULSEIRA"
+                label_color = (130, 130, 130)
 
         # ---------------------------------------------------------
         # 4. Sci-Fi Cybernetic Top HUD Overlay
