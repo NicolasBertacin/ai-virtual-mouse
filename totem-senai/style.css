@@ -84,16 +84,17 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 3px;
-  background: rgba(227, 6, 19, 0.08);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   z-index: 99;
 }
 
 .progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #E30613 0%, #FF3B4B 100%);
-  box-shadow: 0 0 8px rgba(227, 6, 19, 0.4);
+  background: linear-gradient(90deg, #FFFFFF 0%, #FFE6E8 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 4px rgba(255, 255, 255, 0.7);
   transition: width 0.1s linear;
 }
 
@@ -473,28 +474,105 @@ html, body {
   will-change: transform, opacity, filter;
 }
 
-/* Transição e Apresentação dos 3 LinkedIns */
-.slide-screen.active .multi-qr-grid .qr-card {
-  animation: cardEntrance 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* ===================================================================
+   TELA 3: APRESENTAÇÃO ESPECIAL "NOSSO LINKEDIN"
+   (Aparece grande no meio -> encolhe e sobe -> QR Codes aparecem abaixo)
+   =================================================================== */
+.screen3-main-title {
+  display: inline-block;
+  white-space: nowrap;
+  transform-origin: center center;
+  transition: transform 0.2s ease;
 }
 
-.slide-screen.active .multi-qr-grid .qr-card:nth-child(1) {
-  animation-delay: 0.25s;
+/* Quando a Tela 3 entra com a animação de introdução */
+#screen3.active.intro-animating .screen3-main-title {
+  animation: titleCenterToTop 2.0s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
-.slide-screen.active .multi-qr-grid .qr-card:nth-child(2) {
-  animation-delay: 0.45s;
-}
-
-.slide-screen.active .multi-qr-grid .qr-card:nth-child(3) {
-  animation-delay: 0.65s;
-}
-
-@keyframes cardEntrance {
+@keyframes titleCenterToTop {
   0% {
     opacity: 0;
-    transform: translateY(50px) scale(0.92);
-    filter: blur(6px);
+    transform: translateY(var(--center-delta-y, 24vh)) scale(1.85);
+    filter: blur(14px);
+    text-shadow: 0 15px 45px rgba(227, 6, 19, 0.4);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(var(--center-delta-y, 24vh)) scale(1.85);
+    filter: blur(0px);
+    text-shadow: 0 15px 45px rgba(227, 6, 19, 0.4);
+  }
+  48% {
+    opacity: 1;
+    transform: translateY(var(--center-delta-y, 24vh)) scale(1.85);
+    filter: blur(0px);
+    text-shadow: 0 15px 45px rgba(227, 6, 19, 0.4);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+    text-shadow: none;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+    text-shadow: none;
+  }
+}
+
+/* Pill e Subtítulo surgem suavemente após o título subir */
+#screen3.active.intro-animating .screen-header .section-pill {
+  opacity: 0;
+  animation: fadeInHeaderItem 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1.40s;
+}
+
+#screen3.active.intro-animating .screen-header .section-subtitle {
+  opacity: 0;
+  animation: fadeInHeaderItem 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1.50s;
+}
+
+@keyframes fadeInHeaderItem {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Os 3 Cards com QR Code aparecem abaixo em cascata */
+#screen3.active.intro-animating .multi-qr-grid .qr-card {
+  opacity: 0;
+  transform: translateY(70px) scale(0.92);
+  filter: blur(8px);
+  animation: cardsAppearFromBottom 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#screen3.active.intro-animating .multi-qr-grid .qr-card:nth-child(1) {
+  animation-delay: 1.45s;
+}
+
+#screen3.active.intro-animating .multi-qr-grid .qr-card:nth-child(2) {
+  animation-delay: 1.65s;
+}
+
+#screen3.active.intro-animating .multi-qr-grid .qr-card:nth-child(3) {
+  animation-delay: 1.85s;
+}
+
+@keyframes cardsAppearFromBottom {
+  0% {
+    opacity: 0;
+    transform: translateY(70px) scale(0.92);
+    filter: blur(8px);
   }
   100% {
     opacity: 1;
@@ -815,4 +893,141 @@ html, body {
   .hero-title { font-size: 1.5rem; }
   .section-title { font-size: 1.8rem; }
   .qr-image-wrapper { width: 220px; height: 220px; }
+}
+
+
+/* ===================================================================
+   EFEITO DE VENTO PARA A ESQUERDA (TRANSIÇÃO PARA TELA 3)
+   =================================================================== */
+.wind-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 80;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease;
+}
+
+.wind-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.wind-streak {
+  position: absolute;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(227, 6, 19, 0) 0%, rgba(227, 6, 19, 0.35) 25%, rgba(255, 36, 53, 0.8) 60%, rgba(255, 255, 255, 0.95) 100%);
+  box-shadow: 0 0 14px rgba(227, 6, 19, 0.4);
+  transform: translateX(110vw);
+  will-change: transform, opacity;
+}
+
+.wind-overlay.active .wind-streak {
+  animation: windStreakPass 0.65s cubic-bezier(0.15, 0.85, 0.2, 1) forwards;
+}
+
+.wind-streak.s1 { top: 12%; width: 45vw; height: 3px; animation-delay: 0.00s; }
+.wind-streak.s2 { top: 25%; width: 62vw; height: 4px; animation-delay: 0.04s; }
+.wind-streak.s3 { top: 38%; width: 50vw; height: 3px; animation-delay: 0.08s; }
+.wind-streak.s4 { top: 52%; width: 68vw; height: 5px; animation-delay: 0.02s; }
+.wind-streak.s5 { top: 66%; width: 55vw; height: 3px; animation-delay: 0.10s; }
+.wind-streak.s6 { top: 78%; width: 48vw; height: 4px; animation-delay: 0.05s; }
+.wind-streak.s7 { top: 32%; width: 72vw; height: 3px; animation-delay: 0.12s; }
+.wind-streak.s8 { top: 88%; width: 58vw; height: 4px; animation-delay: 0.07s; }
+
+@keyframes windStreakPass {
+  0% {
+    transform: translateX(110vw);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(-125vw);
+    opacity: 0;
+  }
+}
+
+/* Efeito de vento soprando as palavras e caixas para fora à esquerda */
+.slide-screen.wind-blowing-out {
+  pointer-events: none;
+}
+
+.slide-screen.wind-blowing-out .word {
+  display: inline-block;
+  animation: windBlowWord 0.65s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: calc(var(--w-idx, 0) * 0.022s) !important;
+}
+
+.slide-screen.wind-blowing-out .section-pill {
+  animation: windBlowBox 0.55s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: 0.03s !important;
+}
+
+.slide-screen.wind-blowing-out .qr-target-box {
+  animation: windBlowBox 0.68s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: 0.07s !important;
+}
+
+.slide-screen.wind-blowing-out .info-item:nth-child(1) {
+  animation: windBlowBox 0.62s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: 0.02s !important;
+}
+.slide-screen.wind-blowing-out .info-item:nth-child(2) {
+  animation: windBlowBox 0.65s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: 0.08s !important;
+}
+.slide-screen.wind-blowing-out .info-item:nth-child(3) {
+  animation: windBlowBox 0.68s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+  animation-delay: 0.15s !important;
+}
+
+.slide-screen.wind-blowing-out .hero-brand-card {
+  animation: windBlowBox 0.65s cubic-bezier(0.25, 1, 0.35, 1) forwards !important;
+}
+
+@keyframes windBlowWord {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) skewX(0deg);
+    filter: blur(0px);
+  }
+  20% {
+    opacity: 0.95;
+    transform: translate3d(-35px, -8px, 0) rotate(-4deg) skewX(-15deg);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-115vw, -30px, 0) rotate(-16deg) skewX(-45deg);
+    filter: blur(14px);
+  }
+}
+
+@keyframes windBlowBox {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    filter: blur(0px);
+  }
+  25% {
+    opacity: 0.9;
+    transform: translate3d(-60px, -8px, 0) rotate(-3deg);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-125vw, -20px, 0) rotate(-10deg);
+    filter: blur(16px);
+  }
 }

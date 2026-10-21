@@ -75,8 +75,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let waveStep = 0;
 
-  // Configuração das camadas de ondas vermelhas
-  const waveLayers = [
+  // Configuração das camadas de ondas vermelhas superiores (menores, emoldurando o topo da tela)
+  const topWaveLayers = [
+    { fill: "rgba(227, 6, 19, 0.05)", length: 0.0025, amplitude: 40, speed: -0.011, offset: 1.1, baseY: 0.22 },
+    { fill: "rgba(227, 6, 19, 0.10)", length: 0.0036, amplitude: 34, speed: 0.014, offset: 3.3, baseY: 0.17 },
+    { fill: "rgba(227, 6, 19, 0.22)", length: 0.0030, amplitude: 28, speed: -0.016, offset: 0.7, baseY: 0.12 },
+    { fill: "rgba(227, 6, 19, 0.55)", length: 0.0040, amplitude: 22, speed: 0.013, offset: 2.6, baseY: 0.075 },
+    { fill: "#E30613",                length: 0.0032, amplitude: 15, speed: -0.015, offset: 4.2, baseY: 0.04 }
+  ];
+
+  // Configuração das camadas de ondas vermelhas inferiores
+  const bottomWaveLayers = [
     { fill: "rgba(227, 6, 19, 0.05)", length: 0.0022, amplitude: 70, speed: 0.012, offset: 0, baseY: 0.62 },
     { fill: "rgba(227, 6, 19, 0.10)", length: 0.0035, amplitude: 60, speed: -0.015, offset: 2.1, baseY: 0.70 },
     { fill: "rgba(227, 6, 19, 0.22)", length: 0.0028, amplitude: 50, speed: 0.018, offset: 4.3, baseY: 0.78 },
@@ -90,8 +99,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     waveStep += 0.015;
 
-    // Desenha cada camada de onda ondulando suavemente
-    waveLayers.forEach(layer => {
+    // 1. Ondas Superiores (no topo da tela, proporção um pouco menor)
+    topWaveLayers.forEach(layer => {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      
+      const baseHeight = height * layer.baseY;
+      for (let x = 0; x <= width; x += 10) {
+        const y = Math.sin(x * layer.length + waveStep * (layer.speed * 60) + layer.offset) * layer.amplitude + baseHeight;
+        ctx.lineTo(x, y);
+      }
+      const endY = Math.sin(width * layer.length + waveStep * (layer.speed * 60) + layer.offset) * layer.amplitude + baseHeight;
+      ctx.lineTo(width, endY);
+      ctx.lineTo(width, 0);
+      ctx.closePath();
+      ctx.fillStyle = layer.fill;
+      ctx.fill();
+    });
+
+    // 2. Ondas Inferiores (na parte de baixo da tela)
+    bottomWaveLayers.forEach(layer => {
       ctx.beginPath();
       ctx.moveTo(0, height);
       
@@ -100,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const y = Math.sin(x * layer.length + waveStep * (layer.speed * 60) + layer.offset) * layer.amplitude + baseHeight;
         ctx.lineTo(x, y);
       }
-
+      const endY = Math.sin(width * layer.length + waveStep * (layer.speed * 60) + layer.offset) * layer.amplitude + baseHeight;
+      ctx.lineTo(width, endY);
       ctx.lineTo(width, height);
       ctx.closePath();
       ctx.fillStyle = layer.fill;
@@ -225,17 +253,82 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   // 4. TRANSIÇÃO DAS TELAS E CONTADOR DE 20 SEGUNDOS
   // ==========================================
+  let isTransitioning = false;
+
+  function prepareScreen3Entrance() {
+    const screen3 = document.getElementById("screen3");
+    const title = document.getElementById("screen3Title");
+    if (!screen3 || !title) return;
+
+    screen3.classList.remove("intro-animating");
+    title.style.removeProperty("--center-delta-y");
+
+    // Força reflow no navegador
+    void screen3.offsetWidth;
+
+    // Calcula o deslocamento exato da posição final do título até o centro exato da tela
+    const rect = title.getBoundingClientRect();
+    const screenCenterY = window.innerHeight / 2;
+    const titleCenterY = rect.top + (rect.height / 2);
+    const deltaY = Math.round(screenCenterY - titleCenterY);
+
+    title.style.setProperty("--center-delta-y", `${deltaY}px`);
+    screen3.classList.add("intro-animating");
+  }
+
   function goToSlide(index) {
+    if (isTransitioning) return;
     if (index < 0) index = screens.length - 1;
     if (index >= screens.length) index = 0;
 
+    // Se estiver mudando para a Tela 3 (índice 2) a partir de outra tela
+    if (index === 2 && currentSlide !== 2) {
+      isTransitioning = true;
+      const outgoingScreen = screens[currentSlide];
+      const windOverlay = document.getElementById("windOverlay");
+
+      // 1. Efeito de vento para a esquerda levando todas as palavras
+      outgoingScreen.classList.add("wind-blowing-out");
+      if (windOverlay) {
+        windOverlay.classList.remove("active");
+        void windOverlay.offsetWidth;
+        windOverlay.classList.add("active");
+      }
+
+      // 2. Aguarda a rajada de vento tirar as palavras (650ms)
+      setTimeout(() => {
+        outgoingScreen.classList.remove("active", "wind-blowing-out");
+        if (windOverlay) windOverlay.classList.remove("active");
+
+        currentSlide = 2;
+        screens.forEach((screen, idx) => {
+          if (idx === 2) {
+            screen.classList.add("active");
+            prepareScreen3Entrance();
+          } else {
+            screen.classList.remove("active", "wind-blowing-out", "intro-animating");
+          }
+        });
+
+        resetTimer();
+        isTransitioning = false;
+      }, 650);
+      return;
+    }
+
+    // Transição normal para as outras telas (Tela 1 ou Tela 2)
     currentSlide = index;
 
     screens.forEach((screen, idx) => {
+      screen.classList.remove("wind-blowing-out", "intro-animating");
       if (idx === currentSlide) {
         screen.classList.add("active");
-        triggerWordEntrance(screen);
-        triggerCardEntrance(screen);
+        if (idx === 2) {
+          prepareScreen3Entrance();
+        } else {
+          triggerWordEntrance(screen);
+          triggerCardEntrance(screen);
+        }
       } else {
         screen.classList.remove("active");
       }

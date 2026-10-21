@@ -27,6 +27,18 @@
     <div class="progress-fill" id="timerBar"></div>
   </div>
 
+  <!-- Efeito Visual de Rajada de Vento para a Esquerda -->
+  <div class="wind-overlay" id="windOverlay">
+    <div class="wind-streak s1"></div>
+    <div class="wind-streak s2"></div>
+    <div class="wind-streak s3"></div>
+    <div class="wind-streak s4"></div>
+    <div class="wind-streak s5"></div>
+    <div class="wind-streak s6"></div>
+    <div class="wind-streak s7"></div>
+    <div class="wind-streak s8"></div>
+  </div>
+
   <!-- Viewport das 3 Telas -->
   <main class="slider-viewport" id="sliderViewport">
 
@@ -122,13 +134,13 @@
     <section class="screen slide-screen" id="screen3" data-index="2">
       <div class="screen-content">
         <div class="screen-header text-center">
-          <div class="section-pill stagger-words" data-base-delay="0.05">
+          <div class="section-pill" id="screen3Pill">
             CONECTE-SE CONOSCO
           </div>
-          <h2 class="section-title stagger-words" data-base-delay="0.2">
-            NOSSOS PERFIS NO LINKEDIN
+          <h2 class="section-title screen3-main-title" id="screen3Title">
+            NOSSO LINKEDIN
           </h2>
-          <p class="section-subtitle stagger-words" data-base-delay="0.45">
+          <p class="section-subtitle" id="screen3Subtitle">
             Aponte a câmera do seu celular para os QR Codes e conecte-se com a nossa equipe
           </p>
         </div>
