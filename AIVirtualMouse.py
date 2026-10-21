@@ -3,28 +3,36 @@ import numpy as np
 import HandTrackingModule as htm
 import time
 import autopy
+from camera_utils import get_default_camera_index, open_camera
 
 ######################
 wCam, hCam = 640, 480
-frameR = 100     #Frame Reduction
-smoothening = 7  #random value
+frameR = 100     # Frame Reduction
+smoothening = 7  # Smoothing factor
 ######################
 
 pTime = 0
 plocX, plocY = 0, 0
 clocX, clocY = 0, 0
-cap = cv2.VideoCapture(0)
-cap.set(3, wCam)
-cap.set(4, hCam)
+
+# Connect to USB webcam automatically
+cam_idx = get_default_camera_index()
+cap, cam_name, cam_idx = open_camera(cam_idx, wCam, hCam)
+print(f"[AI Virtual Mouse] Usando webcam USB: '{cam_name}' (Dispositivo {cam_idx})")
 
 detector = htm.handDetector(maxHands=1)
 wScr, hScr = autopy.screen.size()
 
-# print(wScr, hScr)
-
 while True:
     # Step1: Find the landmarks
     success, img = cap.read()
+    if not success or img is None:
+        continue
+
+    # Standardize frame size
+    if img.shape[1] != wCam or img.shape[0] != hCam:
+        img = cv2.resize(img, (wCam, hCam))
+
     img = detector.findHands(img)
     lmList, bbox = detector.findPosition(img)
 
@@ -40,7 +48,6 @@ while True:
 
         # Step4: Only Index Finger: Moving Mode
         if fingers[1] == 1 and fingers[2] == 0:
-
             # Step5: Convert the coordinates
             x3 = np.interp(x1, (frameR, wCam-frameR), (0, wScr))
             y3 = np.interp(y1, (frameR, hCam-frameR), (0, hScr))
@@ -58,7 +65,6 @@ while True:
 
         # Step8: Both Index and middle are up: Clicking Mode
         if fingers[1] == 1 and fingers[2] == 1:
-
             # Step9: Find distance between fingers
             length, img, lineInfo = detector.findDistance(8, 12, img)
 
@@ -79,4 +85,4 @@ while True:
         break
 
 cap.release()
-cv2.destroyAllWindows()
+cv2.destroyAllWindows()

@@ -62,157 +62,17 @@ class OneEuroFilter:
         return x_hat
 
 
-# ---------------------------------------------------------
-# Security Module: Black Wristband Hand Authorization
-# ---------------------------------------------------------
-def check_black_wristband(frame, landmarks, cam_w, cam_h):
-    """
-    Checks if a black wristband/bracelet is present near the wrist.
-    Returns:
-        is_authorized (bool): True if black bracelet is detected.
-        center_pt (tuple): (x, y) coordinates of the wristband zone.
-        radius (int): radius of the detection circle.
-        black_ratio (float): percentage of dark pixels detected.
-    """
-    wrist_x = int(landmarks[0].x * cam_w)
-    wrist_y = int(landmarks[0].y * cam_h)
-    middle_mcp_x = int(landmarks[9].x * cam_w)
-    middle_mcp_y = int(landmarks[9].y * cam_h)
-
-    hand_scale = max(40.0, math.hypot(wrist_x - middle_mcp_x, wrist_y - middle_mcp_y))
-
-    # Vector from middle knuckle towards wrist (along forearm direction)
-    dir_x = wrist_x - middle_mcp_x
-    dir_y = wrist_y - middle_mcp_y
-    norm = math.hypot(dir_x, dir_y)
-    if norm > 1e-3:
-        ux, uy = dir_x / norm, dir_y / norm
-    else:
-        ux, uy = 0.0, 1.0
-
-    zone_x = int(wrist_x + ux * (0.16 * hand_scale))
-    zone_y = int(wrist_y + uy * (0.16 * hand_scale))
-    radius = int(max(16, 0.30 * hand_scale))
-
-    x1 = max(0, zone_x - radius)
-    x2 = min(cam_w, zone_x + radius)
-    y1 = max(0, zone_y - radius)
-    y2 = min(cam_h, zone_y + radius)
-
-    if (x2 - x1) < 8 or (y2 - y1) < 8:
-        return False, (wrist_x, wrist_y), radius, 0.0
-
-    roi_bgr = frame[y1:y2, x1:x2]
-    roi_hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
-
-    yy, xx = np.ogrid[:y2 - y1, :x2 - x1]
-    center_roi_x = zone_x - x1
-    center_roi_y = zone_y - y1
-    circle_mask = ((xx - center_roi_x) ** 2 + (yy - center_roi_y) ** 2) <= (radius ** 2)
-
-    total_circle_pixels = int(np.sum(circle_mask))
-    if total_circle_pixels < 20:
-        return False, (zone_x, zone_y), radius, 0.0
-
-    palm_x = int((wrist_x + middle_mcp_x) / 2)
-    palm_y = int((wrist_y + middle_mcp_y) / 2)
-    px1 = max(0, palm_x - 8)
-    px2 = min(cam_w, palm_x + 8)
-    py1 = max(0, palm_y - 8)
-    py2 = min(cam_h, palm_y + 8)
-
-    if (px2 - px1) > 4 and (py2 - py1) > 4:
-        palm_hsv = cv2.cvtColor(frame[py1:py2, px1:px2], cv2.COLOR_BGR2HSV)
-        palm_val = float(np.mean(palm_hsv[:, :, 2]))
-    else:
-        palm_val = 140.0
-
-    black_thresh_v = min(85.0, max(45.0, palm_val * 0.58))
-
-    val_channel = roi_hsv[:, :, 2]
-    dark_pixels = (val_channel < black_thresh_v) & circle_mask
-    black_count = int(np.sum(dark_pixels))
-    black_ratio = black_count / float(total_circle_pixels)
-
-    is_authorized = (black_ratio >= 0.10 and black_count >= 20)
-
-    return is_authorized, (zone_x, zone_y), radius, black_ratio
-
-
-def draw_wristband_badge(frame, center_pt, radius, is_authorized, black_ratio):
-    """Draws a clean authorization indicator at the wrist."""
-    cx, cy = center_pt
-    color = (0, 255, 120) if is_authorized else (0, 50, 255)
-
-    cv2.circle(frame, (cx, cy), radius, color, 2)
-    if is_authorized:
-        cv2.circle(frame, (cx, cy), int(radius * 0.5), (0, 255, 200), 1)
-        tag = f"LIBERADA ({int(black_ratio * 100)}%)"
-        cv2.putText(frame, tag, (cx - 45, cy + radius + 18),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 255, 120), 1)
-    else:
-        cv2.line(frame, (cx - 6, cy - 6), (cx + 6, cy + 6), (0, 0, 255), 2)
-        cv2.line(frame, (cx + 6, cy - 6), (cx - 6, cy + 6), (0, 0, 255), 2)
-        tag = "BLOQUEADA: SEM PULSEIRA"
-        cv2.putText(frame, tag, (cx - 75, cy + radius + 18),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.42, (0, 50, 255), 1)
-
+from camera_utils import open_camera, get_default_camera_index
 
 
 def get_usb_camera_cap(cam_w=640, cam_h=480):
     """
-    Detects physical USB cameras on the system and ignores virtual cameras (iVCam, OBS, etc.).
+    Detects physical USB cameras on the system and prioritizes external USB webcams.
     Returns (cap, cam_name, cam_idx).
     """
-    devices = []
-    try:
-        from pygrabber.dshow_graph import FilterGraph
-        graph = FilterGraph()
-        devices = graph.get_input_devices()
-    except Exception:
-        devices = []
+    idx = get_default_camera_index()
+    return open_camera(idx, cam_w, cam_h)
 
-    usb_names = []
-    try:
-        import subprocess
-        cmd = 'Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -eq "usbvideo" -or ($_.PNPClass -eq "Camera" -and $_.DeviceID -like "USB*") } | Select-Object -ExpandProperty Name'
-        res = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd], text=True, timeout=4)
-        usb_names = [line.strip() for line in res.strip().splitlines() if line.strip()]
-    except Exception:
-        usb_names = []
-
-    selected_idx = None
-    selected_name = "Camera USB"
-
-    for idx, dev_name in enumerate(devices):
-        for usb_n in usb_names:
-            if usb_n.lower() in dev_name.lower() or dev_name.lower() in usb_n.lower():
-                selected_idx = idx
-                selected_name = dev_name
-                break
-        if selected_idx is not None:
-            break
-
-    if selected_idx is None:
-        virtual_keywords = ['ivcam', 'obs', 'virtual', 'droidcam', 'iriun', 'manycam', 'vcam']
-        for idx, dev_name in enumerate(devices):
-            if not any(k in dev_name.lower() for k in virtual_keywords):
-                selected_idx = idx
-                selected_name = dev_name
-                break
-
-    if selected_idx is None:
-        selected_idx = 0
-        if devices:
-            selected_name = devices[0]
-
-    cap = cv2.VideoCapture(selected_idx, cv2.CAP_DSHOW)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture(selected_idx)
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
-    return cap, selected_name, selected_idx
 
 
 # ---------------------------------------------------------
@@ -234,14 +94,13 @@ def main():
     MARGIN_X = 110
     MARGIN_Y = 90
 
-    # MediaPipe Hands
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        max_num_hands=2,
+    # MediaPipe Hands (Compatible with Python 3.8 - 3.13 Tasks & Solutions API)
+    from tracker_utils import UniversalHandsDetector, draw_hand_skeleton
+    hands = UniversalHandsDetector(
+        max_num_hands=1,
         min_detection_confidence=0.7,
         min_tracking_confidence=0.7
     )
-    mp_draw = mp.solutions.drawing_utils
 
     # Filters for X and Y coordinates
     t_now = time.time()
@@ -290,8 +149,11 @@ def main():
 
     while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None:
             break
+
+        if frame.shape[1] != CAM_W or frame.shape[0] != CAM_H:
+            frame = cv2.resize(frame, (CAM_W, CAM_H), interpolation=cv2.INTER_LINEAR)
 
         # Mirror image for intuitive control
         frame = cv2.flip(frame, 1)
@@ -466,63 +328,38 @@ def main():
                             has_clicked_in_lock = False
 
                     else:
-                        # Normal Cursor Tracking when not locked
-                        pyautogui.moveTo(smooth_x, smooth_y)
-                        current_action_label = "Pointer Tracking"
-                        label_color = (200, 200, 200)
+                        if dist_thumb_middle > (45 * scale_ratio):
+                            is_right_pinching = False
+                            if (t_current - right_pinch_start) < 0.45:
+                                pyautogui.rightClick()
+                                current_action_label = "Right Click"
+                                label_color = (0, 100, 255)
 
-                    # ---------------------------------------------------------
-                    # GESTURE 4: Right Click (Thumb + Middle Pinch)
-                    # ---------------------------------------------------------
-                    if not is_locked and not is_dragging:
-                        if not is_right_pinching:
-                            if dist_thumb_middle < (32 * scale_ratio) and dist_thumb_index > (45 * scale_ratio):
-                                is_right_pinching = True
-                                right_pinch_start = t_current
-                        else:
-                            if dist_thumb_middle > (45 * scale_ratio):
-                                is_right_pinching = False
-                                if (t_current - right_pinch_start) < 0.45:
-                                    pyautogui.rightClick()
-                                    current_action_label = "Right Click"
-                                    label_color = (0, 100, 255)
+                # ---------------------------------------------------------
+                # Visual Reticle & Magnetic Lock Crosshair
+                # ---------------------------------------------------------
+                if is_locked:
+                    # Draw Magnetic Lock Crosshair on target
+                    cx, cy = locked_cam_pos
+                    cv2.circle(frame, (cx, cy), 18, (0, 255, 255), 2)
+                    cv2.line(frame, (cx - 24, cy), (cx + 24, cy), (0, 255, 255), 1)
+                    cv2.line(frame, (cx, cy - 24), (cx, cy + 24), (0, 255, 255), 1)
 
-                    # ---------------------------------------------------------
-                    # Visual Reticle & Magnetic Lock Crosshair
-                    # ---------------------------------------------------------
-                    if is_locked:
-                        # Draw Magnetic Lock Crosshair on target
-                        cx, cy = locked_cam_pos
-                        cv2.circle(frame, (cx, cy), 18, (0, 255, 255), 2)
-                        cv2.line(frame, (cx - 24, cy), (cx + 24, cy), (0, 255, 255), 1)
-                        cv2.line(frame, (cx, cy - 24), (cx, cy + 24), (0, 255, 255), 1)
+                # Dynamic Halo that contracts as thumb closes in
+                pinch_progress = max(0.0, min(1.0, (dist_thumb_index - PINCH_CLICK_DIST) / max(1, (PRE_LOCK_DIST - PINCH_CLICK_DIST))))
+                ring_radius = int(8 + pinch_progress * 18)
+                ring_color = (0, 255, 0) if dist_thumb_index < PINCH_CLICK_DIST else ((0, 255, 255) if is_locked else (255, 200, 0))
 
-                    # Dynamic Halo that contracts as thumb closes in
-                    pinch_progress = max(0.0, min(1.0, (dist_thumb_index - PINCH_CLICK_DIST) / max(1, (PRE_LOCK_DIST - PINCH_CLICK_DIST))))
-                    ring_radius = int(8 + pinch_progress * 18)
-                    ring_color = (0, 255, 0) if dist_thumb_index < PINCH_CLICK_DIST else ((0, 255, 255) if is_locked else (255, 200, 0))
+                mid_x = int((thumb_px[0] + index_px[0]) / 2)
+                mid_y = int((thumb_px[1] + index_px[1]) / 2)
 
-                    mid_x = int((thumb_px[0] + index_px[0]) / 2)
-                    mid_y = int((thumb_px[1] + index_px[1]) / 2)
+                cv2.line(frame, thumb_px, index_px, (160, 160, 160), 1)
+                cv2.circle(frame, index_px, 6, (0, 255, 255), -1)
+                cv2.circle(frame, thumb_px, 5, (255, 120, 0), -1)
+                cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
 
-                    cv2.line(frame, thumb_px, index_px, (160, 160, 160), 1)
-                    cv2.circle(frame, index_px, 6, (0, 255, 255), -1)
-                    cv2.circle(frame, thumb_px, 5, (255, 120, 0), -1)
-                    cv2.circle(frame, (mid_x, mid_y), ring_radius, ring_color, 2)
-
-                # Draw subtle skeleton
-                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
-                                      mp_draw.DrawingSpec(color=(60, 60, 60), thickness=1, circle_radius=2),
-                                      mp_draw.DrawingSpec(color=(100, 100, 100), thickness=1))
-
-        else:
-            if is_dragging:
-                pyautogui.mouseUp()
-                is_dragging = False
-            is_locked = False
-            is_scrolling = False
-            current_action_label = "STANDBY: COLOQUE A MAO COM PULSEIRA"
-            label_color = (130, 130, 130)
+            # Draw subtle skeleton
+            draw_hand_skeleton(frame, hand_landmarks, CAM_W, CAM_H)
 
         # ---------------------------------------------------------
         # Apple-Style Translucent Top HUD
