@@ -117,13 +117,14 @@ python AIVirtualMouse.py
 
 ## 🖐️ Guia de Gestos e Controles
 
-### 🔒 Segurança Biométrica: Liberação por Pulseira Preta
-> [!IMPORTANT]
-> **Apenas a mão com a pulseira preta tem permissão para controlar o sistema!**
-> - O sistema escaneia em tempo real a região do pulso da mão em busca de uma **pulseira, bracelete ou fita preta** (como pulseiras de silicone, borracha, relógio/smartwatch com pulseira preta ou tecido escuro).
-> - **Mão com pulseira preta**: Exibe o badge verde `LIBERADA [OK XX%]` no pulso e comanda o cursor, cliques e gestos.
-> - **Mão sem pulseira**: Exibe o badge vermelho `BLOQUEADA: SEM PULSEIRA` e o aviso `ACESSO NEGADO: USE A PULSEIRA PRETA`. O mouse não se move e nenhum clique é acionado.
-> - **Se duas mãos estiverem na câmera**: Apenas a mão que estiver usando a pulseira preta assume o controle.
+### 🔒 Segurança Biométrica (Opcional): Liberação por Pulseira Preta
+> [!NOTE]
+> **Por padrão, a obrigatoriedade da pulseira está DESATIVADA (`REQUIRE_WRISTBAND = False`), permitindo controle livre com qualquer mão.**
+> - Caso queira reativar a restrição biométrica, basta alterar a variável `REQUIRE_WRISTBAND = True` no topo de `ironman_touchless_pro.py` ou `mac_touchless_pro.py`.
+> - **Quando ativada (`REQUIRE_WRISTBAND = True`)**:
+>   - O sistema escaneia em tempo real a região do pulso em busca de uma **pulseira, bracelete ou fita preta** (relógio, fita ou silicone).
+>   - **Mão com pulseira**: Exibe o badge verde `LIBERADA [OK XX%]` e autoriza o controle do mouse e gestos.
+>   - **Mão sem pulseira**: Exibe o aviso `ACESSO NEGADO: USE A PULSEIRA PRETA`.
 
 ### 🖱️ Versão Pro (`mac_touchless_pro.py` e `ironman_touchless_pro.py`):
 * **Mover o Cursor**: Levante o dedo indicador e aponte para onde deseja mover. O sistema utiliza estabilização One Euro para eliminar qualquer tremor da mão.

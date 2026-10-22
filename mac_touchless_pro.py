@@ -22,6 +22,9 @@ import time
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0.0
 
+# Configuracao de seguranca (Defina True caso queira exigir obrigatoriamente a pulseira preta)
+REQUIRE_WRISTBAND = False
+
 # ---------------------------------------------------------
 # 1. One Euro Filter for Butter-Smooth, Jitter-Free Motion
 # ---------------------------------------------------------
@@ -95,7 +98,12 @@ def main():
     MARGIN_Y = 90
 
     # MediaPipe Hands (Compatible with Python 3.8 - 3.13 Tasks & Solutions API)
-    from tracker_utils import UniversalHandsDetector, draw_hand_skeleton
+    from tracker_utils import (
+        UniversalHandsDetector,
+        draw_hand_skeleton,
+        check_black_wristband,
+        draw_wristband_badge,
+    )
     hands = UniversalHandsDetector(
         max_num_hands=1,
         min_detection_confidence=0.7,
@@ -174,13 +182,16 @@ def main():
 
         if results.multi_hand_landmarks:
             authorized_hand = None
-            for hand_lms in results.multi_hand_landmarks:
-                is_auth, band_pt, band_r, b_ratio = check_black_wristband(
-                    frame, hand_lms.landmark, CAM_W, CAM_H
-                )
-                draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio)
-                if is_auth and authorized_hand is None:
-                    authorized_hand = hand_lms
+            if REQUIRE_WRISTBAND:
+                for hand_lms in results.multi_hand_landmarks:
+                    is_auth, band_pt, band_r, b_ratio = check_black_wristband(
+                        frame, hand_lms.landmark, CAM_W, CAM_H
+                    )
+                    draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio)
+                    if is_auth and authorized_hand is None:
+                        authorized_hand = hand_lms
+            else:
+                authorized_hand = results.multi_hand_landmarks[0]
 
             if authorized_hand is None:
                 if is_dragging:
@@ -360,6 +371,15 @@ def main():
 
             # Draw subtle skeleton
             draw_hand_skeleton(frame, hand_landmarks, CAM_W, CAM_H)
+
+        else:
+            if is_dragging:
+                pyautogui.mouseUp()
+                is_dragging = False
+            is_locked = False
+            is_scrolling = False
+            current_action_label = "Standby (Show Hand)"
+            label_color = (130, 130, 130)
 
         # ---------------------------------------------------------
         # Apple-Style Translucent Top HUD
