@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENAI - Experiência Touchless</title>
+  
+  <!-- Tipografia Oficial Totem SENAI: Outfit + Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/senai-logo.svg">
+</head>
+<body>
+
+  <!-- Fundo Animado com Ondas Vermelhas Fluidas (Totem SENAI Canvas) -->
+  <div class="canvas-bg-container">
+    <canvas id="waveCanvas"></canvas>
+    <div class="wave-glow-ambient"></div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- Header Minimalista -->
+    <header class="app-header">
+      <div class="brand-section">
+        <img src="assets/senai-logo.svg" alt="SENAI" class="brand-logo">
+        <div class="brand-divider"></div>
+        <span class="brand-tag">Experiência Touchless</span>
+      </div>
+
+      <!-- Navegação em Cápsula Minimalista -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="playground">
+          <span class="tab-icon">🎯</span>
+          <span>Área de Testes</span>
+        </button>
+        <button class="tab-btn" data-tab="challenges">
+          <span class="tab-icon">⚡</span>
+          <span>Desafios da Mão</span>
+        </button>
+        <button class="tab-btn" data-tab="flappy">
+          <span class="tab-icon">🐦</span>
+          <span>Flip Bird</span>
+        </button>
+        <button class="tab-btn" data-tab="fruit">
+          <span class="tab-icon">🍉</span>
+          <span>Fruit Ninja</span>
+        </button>
+      </nav>
+
+      <!-- Ações Rápidas (Áudio e Fullscreen) -->
+      <div class="header-actions">
+        <button class="action-btn" id="btnToggleSound" title="Ativar/Desativar Sons">
+          <span id="soundIcon">🔊</span>
+        </button>
+        <button class="action-btn" id="btnFullscreen" title="Tela Cheia">
+          <span>⛶</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal Dinâmico por Aba -->
+    <main class="main-content">
+
+      <!-- ========================================================
+           ABA 1: ÁREA DE TESTES (PLAYGROUND DO SISTEMA)
+           ======================================================== -->
+      <section class="tab-panel active" id="tab-playground">
+        <div class="section-intro">
+          <span class="section-pill">Calibração & Controle</span>
+          <h2 class="section-title">Área de Teste do Sistema</h2>
+          <p class="section-description">
+            Experimente a precisão da sua mão e do cursor virtual. Teste cliques, arraste, estabilidade e desenhe livremente.
+          </p>
+        </div>
+
+        <div class="playground-grid">
+          <!-- Card 1: Radar do Cursor & Suavidade -->
+          <div class="test-card">
+            <div class="card-header-clean">
+              <h3><span class="card-icon">◎</span> Radar de Movimento</h3>
+              <span class="card-subtext">Estabilidade</span>
+            </div>
+            <div class="radar-box">
+              <div class="radar-display" id="radarArea">
+                <div class="radar-ring"></div>
+                <div class="radar-cross-h"></div>
+                <div class="radar-cross-v"></div>
+                <div class="radar-dot" id="radarDot"></div>
+              </div>
+              <div class="radar-feedback">
+                <div class="radar-metric-clean">
+                  <span class="label">Fluidez</span>
+                  <span class="value" id="fluidityText">Firme</span>
+                </div>
+                <div class="radar-metric-clean">
+                  <span class="label">Velocidade</span>
+                  <span class="value" id="velocityText">Suave</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Botões Táteis com Feedback -->
+          <div class="test-card">
+            <div class="card-header-clean">
+              <h3><span class="card-icon">👆</span> Botões Táteis</h3>
+              <span class="card-subtext">Cliques e Gestos</span>
+            </div>
+            <div class="tactile-buttons-row">
+              <button class="magnetic-btn" id="btnQuickClick">
+                <span>Clique Rápido</span>
+              </button>
+              <button class="magnetic-btn dwell-btn" id="btnDwellClick">
+                <div class="dwell-fill-bar" id="dwellBar"></div>
+                <span style="position: relative; z-index: 2;">Segure (0.5s)</span>
+              </button>
+            </div>
+            <div class="tactile-status-badge" id="tactileFeedback">
+              Aproxime o cursor ou clique para testar
+            </div>
+          </div>
+
+          <!-- Card 3: Controles Deslizantes e Toggles -->
+          <div class="test-card">
+            <div class="card-header-clean">
+              <h3><span class="card-icon">🎚️</span> Ajustes & Sliders</h3>
+              <span class="card-subtext">Precisão Contínua</span>
+            </div>
+            <div class="controls-test-box">
+              <div class="slider-group">
+                <div class="slider-labels">
+                  <span>Precisão Horizontal</span>
+                  <span id="sliderValText" style="color: var(--senai-red);">50%</span>
+                </div>
+                <input type="range" min="0" max="100" value="50" class="clean-slider" id="testSlider">
+              </div>
+              <div class="toggles-row">
+                <label class="toggle-item">
+                  <div class="switch">
+                    <input type="checkbox" checked id="toggleFeedback">
+                    <span class="slider-toggle"></span>
+                  </div>
+                  <span>Vibração Visual</span>
+                </label>
+                <label class="toggle-item">
+                  <div class="switch">
+                    <input type="checkbox" checked id="toggleTrail">
+                    <span class="slider-toggle"></span>
+                  </div>
+                  <span>Rastro Neon</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Encaixe de Peças (Drag & Drop) -->
+          <div class="test-card">
+            <div class="card-header-clean">
+              <h3><span class="card-icon">🧩</span> Encaixe de Peças</h3>
+              <span class="card-subtext">Arraste até o Alvo</span>
+            </div>
+            <div class="drag-drop-zone">
+              <div class="slots-container">
+                <div class="drop-slot" data-slot="ia">Sensor IA</div>
+                <div class="drop-slot" data-slot="auto">Automação</div>
+                <div class="drop-slot" data-slot="robo">Robótica</div>
+              </div>
+              <div class="pieces-container">
+                <div class="drag-piece" draggable="true" data-type="auto">⚙️ Automação</div>
+                <div class="drag-piece" draggable="true" data-type="ia">🧠 Sensor IA</div>
+                <div class="drag-piece" draggable="true" data-type="robo">🦾 Robótica</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: Lousa de Desenho Livre -->
+          <div class="test-card canvas-card-full">
+            <div class="canvas-toolbar">
+              <div class="card-header-clean" style="margin-bottom: 0;">
+                <h3><span class="card-icon">✏️</span> Lousa de Rabisco Livre</h3>
+              </div>
+              <div class="canvas-colors">
+                <div class="color-dot active" data-color="#E30613" style="background: #E30613;" title="Vermelho SENAI"></div>
+                <div class="color-dot" data-color="#111827" style="background: #111827;" title="Grafite"></div>
+                <div class="color-dot" data-color="#FF2435" style="background: #FF2435;" title="Laser Brilhante"></div>
+              </div>
+              <button class="clear-btn" id="btnClearCanvas">Limpar Lousa</button>
+            </div>
+            <canvas id="freeDrawCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           ABA 2: DESAFIOS DA MÃO E DO CURSOR
+           ======================================================== -->
+      <section class="tab-panel" id="tab-challenges">
+        <div class="section-intro">
+          <span class="section-pill">Desafios de Habilidade</span>
+          <h2 class="section-title">Desafios com a Mão e o Cursor</h2>
+          <p class="section-description">
+            Complete os testes de reflexo, firmeza e velocidade motora sem encostar na tela.
+          </p>
+        </div>
+
+        <div class="challenges-wrapper">
+          <!-- Seletor dos 4 Desafios -->
+          <div class="challenge-selector-row">
+            <div class="challenge-tab-card active" data-challenge="1">
+              <div class="challenge-badge-num">1</div>
+              <div class="challenge-info">
+                <h4>Labirinto de Laser</h4>
+                <p>Percorra sem tocar as bordas</p>
+              </div>
+            </div>
+            <div class="challenge-tab-card" data-challenge="2">
+              <div class="challenge-badge-num">2</div>
+              <div class="challenge-info">
+                <h4>Reflexo Rápido</h4>
+                <p>Estoure os alvos antes do tempo</p>
+              </div>
+            </div>
+            <div class="challenge-tab-card" data-challenge="3">
+              <div class="challenge-badge-num">3</div>
+              <div class="challenge-info">
+                <h4>Segurar o Foco</h4>
+                <p>Mantenha na esfera por 3s</p>
+              </div>
+            </div>
+            <div class="challenge-tab-card" data-challenge="4">
+              <div class="challenge-badge-num">4</div>
+              <div class="challenge-info">
+                <h4>Conectar Nós</h4>
+                <p>Ligue os pontos em sequência</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arena Interativa do Desafio -->
+          <div class="challenge-arena-card">
+            <div class="challenge-arena-header">
+              <div class="arena-title-area">
+                <h3 id="currentChallengeTitle">Desafio 1: Labirinto de Laser</h3>
+                <p id="currentChallengeInstruction">Leve o cursor do ponto inicial até a meta sem encostar nas paredes vermelhas.</p>
+              </div>
+              <div class="arena-stats-clean">
+                <span class="clean-tag" id="challengeStatusTag">Valendo</span>
+              </div>
+            </div>
+
+            <div class="arena-canvas-container">
+              <canvas id="challengeCanvas"></canvas>
+
+              <!-- Modal de Vitória do Desafio -->
+              <div class="challenge-overlay-modal" id="challengeWinModal">
+                <div class="celebration-icon">🏆</div>
+                <h3 id="winTitle">Desafio Concluído!</h3>
+                <p id="winDesc">Excelente precisão e estabilidade motora.</p>
+                <button class="action-btn-red" id="btnRestartChallenge">Repetir Desafio</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           ABA 3: FLIP BIRD (SENAI EDITION)
+           ======================================================== -->
+      <section class="tab-panel" id="tab-flappy">
+        <div class="section-intro">
+          <span class="section-pill">Jogo Clássico Touchless</span>
+          <h2 class="section-title">Flip Bird</h2>
+          <p class="section-description">
+            Pilote o drone tecnológico do SENAI pelos obstáculos. Faça o gesto de clique (ou toque) para bater asas!
+          </p>
+        </div>
+
+        <div class="game-container-clean">
+          <div class="game-header-bar">
+            <div class="game-title-group">
+              <h3><span>🐦</span> Drone SENAI</h3>
+              <p>Clique ou faça o gesto de pinça para voar</p>
+            </div>
+            <div class="game-score-pill">
+              <div class="score-item">
+                <span class="sublabel">Pontos</span>
+                <span class="num" id="flappyScore">0</span>
+              </div>
+              <div class="score-item">
+                <span class="sublabel">Recorde</span>
+                <span class="num" id="flappyBest">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-canvas-wrapper">
+            <canvas id="flappyCanvas"></canvas>
+
+            <!-- Tela de Início / Game Over -->
+            <div class="game-overlay-screen" id="flappyOverlay">
+              <div class="overlay-bird-icon">🚀</div>
+              <h2 id="flappyOverlayTitle">Pronto para Decolar?</h2>
+              <p id="flappyOverlayText">Clique em qualquer lugar da tela ou faça a pinça com os dedos para voar.</p>
+              <button class="action-btn-red" id="btnStartFlappy">Iniciar Voo</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           ABA 4: FRUIT NINJA (SENAI EDITION)
+           ======================================================== -->
+      <section class="tab-panel" id="tab-fruit">
+        <div class="section-intro">
+          <span class="section-pill">Ação & Reflexo</span>
+          <h2 class="section-title">Fruit Ninja</h2>
+          <p class="section-description">
+            Corte as frutas no ar com a sua lâmina laser de plasma. Faça combos e evite as bombas!
+          </p>
+        </div>
+
+        <div class="fruit-game-wrapper">
+          <canvas id="fruitCanvas"></canvas>
+
+          <!-- HUD Superior do Fruit Ninja -->
+          <div class="fruit-hud-top">
+            <div class="fruit-lives" id="fruitLivesContainer">
+              <span>❤️</span>
+              <span>❤️</span>
+              <span>❤️</span>
+            </div>
+            <div class="fruit-score-badge" id="fruitScoreText">0 Frutas</div>
+          </div>
+
+          <!-- Alerta de Combo no Centro -->
+          <div class="fruit-combo-alert" id="fruitComboAlert">COMBO x2!</div>
+
+          <!-- Tela de Início / Game Over Fruit Ninja -->
+          <div class="game-overlay-screen" id="fruitOverlay">
+            <div class="overlay-bird-icon">🍉</div>
+            <h2 id="fruitOverlayTitle">Lâmina Laser Pronta!</h2>
+            <p id="fruitOverlayText">Passe o cursor sobre as frutas com movimentos rápidos para fatiá-las.</p>
+            <button class="action-btn-red" id="btnStartFruit">Começar Jogo</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Rodapé Minimalista -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-status-dot"></span>
+        <span>Sistema Touchless Pronto • Rastreamento Ativo</span>
+      </div>
+      <div class="footer-right">
+        <span>SENAI • Inovação e Tecnologia</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
