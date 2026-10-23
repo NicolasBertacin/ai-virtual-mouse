@@ -248,18 +248,9 @@ def main():
         hud_angle = (t_current * 100) % 360  # Continuous rotation for HUD rings
 
         # ---------------------------------------------------------
-        # Security & Wristband Authorization Check
+        # Active Hands Check (Sem restrição de pulseira)
         # ---------------------------------------------------------
-        authorized_hands = []
-        if num_hands > 0:
-            for hand_idx, hand_lms in enumerate(results.multi_hand_landmarks):
-                is_auth, band_pt, band_r, b_ratio = check_black_wristband(
-                    frame, hand_lms.landmark, CAM_W, CAM_H
-                )
-                draw_wristband_badge(frame, band_pt, band_r, is_auth, b_ratio, hud_angle)
-                if is_auth:
-                    authorized_hands.append(hand_lms)
-
+        authorized_hands = results.multi_hand_landmarks if results.multi_hand_landmarks else []
         num_auth = len(authorized_hands)
 
         # ---------------------------------------------------------
@@ -588,10 +579,10 @@ def main():
             prev_dual_pinch_dist = None
 
             if num_hands > 0:
-                current_action_label = "ACESSO NEGADO: USE A PULSEIRA PRETA"
+                current_action_label = "STANDBY: MOSTRE A MAO"
                 label_color = (0, 40, 255)
             else:
-                current_action_label = "STANDBY: COLOQUE A MAO COM PULSEIRA"
+                current_action_label = "STANDBY: MOSTRE A MAO"
                 label_color = (130, 130, 130)
 
         # ---------------------------------------------------------

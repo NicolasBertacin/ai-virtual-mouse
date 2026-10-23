@@ -21,16 +21,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // URLs padrão para QR Code
   const DEFAULT_URLS = {
     cursos: "https://www.sp.senai.br/cursos",
-    card1: "https://www.sp.senai.br/cursos/tecnicos",
-    card2: "https://www.sp.senai.br/cursos/livres",
-    card3: "https://www.sp.senai.br/faculdade"
+    card1: "https://www.linkedin.com/in/thiago-masseto",
+    card2: "https://www.linkedin.com/in/nicolas-bertacin",
+    card3: "https://www.linkedin.com/in/nicolas-dalastra"
   };
 
   const ASSET_BASENAMES = {
     cursos: ["qr-cursos", "qrcode-cursos", "cursos"],
-    card1: ["qr-1", "qr-tecnicos", "tecnicos"],
-    card2: ["qr-2", "qr-livres", "livres"],
-    card3: ["qr-3", "qr-faculdade", "faculdade"]
+    card1: ["qr-thiago-masseto", "qr-1"],
+    card2: ["qr-nicolas-bertacin", "qr-2"],
+    card3: ["qr-nicolas-dalastra", "qr-3"]
   };
 
   const EXTENSIONS = ["png", "jpg", "jpeg", "webp", "svg"];
@@ -416,6 +416,10 @@ document.addEventListener("DOMContentLoaded", () => {
       case "s":
       case "S":
         openSettings();
+        break;
+      case "t":
+      case "T":
+        window.location.href = "teste.html";
         break;
     }
   });

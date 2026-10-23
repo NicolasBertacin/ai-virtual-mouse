@@ -1,165 +1,152 @@
-# 🚀 Guia Completo: Como Rodar o AI Virtual Mouse
+# 🚀 Guia Completo: Como Rodar o AI Virtual Mouse & Totem SENAI
 
-Este guia detalha o passo a passo para configurar o ambiente, instalar as dependências corretas e executar qualquer uma das três versões do mouse virtual com inteligência artificial e visão computacional.
+Este guia detalha o passo a passo para configurar o ambiente, instalar as dependências e executar o sistema de mouse virtual touchless e as aplicações web através de comandos Python puros.
 
 ---
-##
+
 ## 📋 Sumário
-1. [Visão Geral dos Scripts](#-visão-geral-dos-scripts)
-2. [Requisitos Importantes (Atenção ao Python)](#-requisitos-importantes)
-3. [Passo a Passo de Instalação no Windows](#-passo-a-passo-de-instalação-no-windows)
-4. [Como Inicializar o Sistema](#-como-inicializar-o-sistema)
-5. [Guia de Gestos e Controles](#-guia-de-gestos-e-controles)
-6. [Resolução de Problemas Frequentes (FAQ)](#-resolução-de-problemas-frequentes)
+1. [Execução Rápida em Código Python](#-execução-rápida-em-código-python)
+2. [Estrutura do Projeto](#-estrutura-do-projeto)
+3. [Requisitos do Sistema e Dependências](#-requisitos-do-sistema-e-dependências)
+4. [Opções Detalhadas de Execução](#-opções-detalhadas-de-execução)
+5. [Guia de Gestos e Controles Touchless](#-guia-de-gestos-e-controles-touchless)
+6. [Resolução de Problemas Frequentes](#-resolução-de-problemas-frequentes)
 
 ---
 
-## 🎮 Visão Geral dos Scripts
+## ⚡ Execução Rápida em Código Python
 
-O projeto conta com 3 versões diferentes, da mais simples até a mais avançada:
-
-| Arquivo | Descrição | Biblioteca de Mouse |
-| :--- | :--- | :--- |
-| **`ironman_touchless_pro.py`** | **Interface Jarvis / Homem de Ferro**: HUD holográfico de reator Arc, gestos com a palma para alternar áreas de trabalho do Windows (`Win+Tab`, `Win+D`, etc.), zoom estendido com duas mãos e filtro anti-tremor One Euro. | `pyautogui` |
-| **`mac_touchless_pro.py`** | **Modo MacBook / Apple Vision Pro**: Focado em produtividade diária, com trava magnética pré-clique (evita que o cursor deslize ao bater os dedos), rolagem natural com dois dedos e filtro de suavização de tremor. | `pyautogui` |
-| **`AIVirtualMouse.py`** | **Versão Básica / Didática**: Script clássico simples para mover o cursor com o dedo indicador e clicar levantando o dedo médio. | `autopy` |
-
----
-
-## ⚠️ Requisitos Importantes
-
-### 1. Versão do Python: **3.10 ou 3.11 (Obrigatório)**
-> [!IMPORTANT]
-> **Não utilize o Python 3.13!** 
-> A Google descontinuou a API `mediapipe.solutions` a partir da versão `0.10.30`. Como o Python 3.13 só possui pacotes do MediaPipe lançados a partir da versão `0.10.30`, tentar rodar o código com Python 3.13 causará o erro:  
-> `AttributeError: module 'mediapipe' has no attribute 'solutions'`.  
-> Por isso, **utilize o Python 3.11 ou 3.10**.
-
-### 2. Hardware
-* **Webcam** (integrada no notebook ou conectada via USB).
-
----
-
-## 🛠️ Passo a Passo de Instalação no Windows
-
-### 1. Instalar o Python 3.11 (se ainda não tiver)
-Se você possui apenas o Python 3.13 ou não tem o Python instalado, instale o Python 3.11 pelo terminal:
+Abra o terminal (PowerShell ou CMD) na pasta do projeto e utilize o comando unificado:
 
 ```powershell
-winget install Python.Python.3.11 --accept-package-agreements --accept-source-agreements
+# Inicia o Mouse Virtual Touchless + abre a Área de Testes com jogos no navegador
+py main.py
 ```
-*(Ou baixe pelo site oficial: [python.org/downloads/release/python-3119/](https://www.python.org/downloads/release/python-3119/)).*
 
----
-
-### 2. Abrir o Terminal na Pasta do Projeto
-Abra o **PowerShell** ou **Prompt de Comando** dentro do diretório do projeto:
+### Outras Opções com `main.py`:
 ```powershell
-cd "C:\Users\Aluno 02\Desktop\ai-virtual-mouse"
+# Abre o Totem Digital institucional oficial no navegador
+py main.py --totem
+
+# Abre apenas o Laboratório de Testes Web com os 3 jogos (sem ligar câmera)
+py main.py --teste
+
+# Inicia apenas o motor do mouse virtual 60 FPS (sem abrir navegador)
+py main.py --mouse-only
+
+# Inicia o modo Jarvis / Homem de Ferro (HUD holográfico Sci-Fi)
+py main.py --ironman
+
+# Inicia a interface gráfica desktop (CustomTkinter Studio)
+py main.py --gui
 ```
 
 ---
 
-### 3. Criar e Ativar um Ambiente Virtual (venv)
-Criar um ambiente virtual isolado garante que as versões corretas das bibliotecas sejam utilizadas sem conflitos:
+## 📁 Estrutura do Projeto
 
-```powershell
-# 1. Cria a venv usando o Python 3.11
-py -3.11 -m venv venv
-
-# 2. Ativa o ambiente virtual
-.\venv\Scripts\Activate.ps1
 ```
-
-> [!TIP]
-> **Aviso de segurança no PowerShell?**  
-> Se o PowerShell exibir o erro `PSSecurityException` ou informar que *a execução de scripts foi desabilitada neste sistema*, execute o comando abaixo e tente ativar novamente:
-> ```powershell
-> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-> .\venv\Scripts\Activate.ps1
-> ```
-> Quando a venv estiver ativa, você verá `(venv)` no início da linha de comando.
-
----
-
-### 4. Instalar as Dependências
-
-Com o `(venv)` ativo, instale as bibliotecas necessárias:
-
-```powershell
-pip install opencv-python mediapipe==0.10.14 pyautogui numpy
-```
-
-*(Opcional: Caso deseje rodar a versão básica `AIVirtualMouse.py`, instale também `pip install autopy`).*
-
----
-
-## 🚀 Como Inicializar o Sistema
-
-Certifique-se de que sua webcam está livre (não sendo usada pelo Teams, Zoom, Meet, etc.) e execute uma das opções:
-
-### Opção 1: Versão Jarvis / Homem de Ferro (Mais Completa)
-```powershell
-python ironman_touchless_pro.py
-```
-
-### Opção 2: Versão MacBook Touchless Pro (Produtividade Limpa)
-```powershell
-python mac_touchless_pro.py
-```
-
-### Opção 3: Versão Clássica Básica
-```powershell
-python AIVirtualMouse.py
+ai-virtual-mouse/
+│
+├── main.py                       # ⭐ Ponto de entrada unificado em Python puro
+├── mac_touchless_pro.py          # Motor Touchless Principal (60 FPS, One-Euro, clique magnético)
+├── ironman_touchless_pro.py      # Motor Touchless com HUD Sci-Fi holográfico
+├── camera_utils.py               # Módulo de câmera otimizado (DirectShow/USB 60 FPS)
+├── tracker_utils.py              # Detector universal de mãos (MediaPipe Tasks + Fallback)
+├── gui_app.py                    # Aplicação Desktop CustomTkinter
+├── main_gui.py                   # Ponto de entrada da aplicação desktop
+├── virtual_mouse_engine.py       # Motor de background da interface desktop
+├── hand_landmarker.task          # Modelo neural MediaPipe Hands
+├── senai_logo.png                # Asset do logo para o Studio desktop
+├── COMO_RODAR.md                 # Este guia de execução
+├── README.md                     # Documentação geral do projeto
+│
+├── totem-senai/                  # Aplicações Web (Totem & Laboratório de Testes)
+│   ├── index.html                # Totem Digital oficial (ondas a 60fps e carrossel de 20s)
+│   ├── teste.html                # Laboratório de Testes (5 módulos + Flip Bird, Fruit Ninja e Hockey)
+│   ├── style.css                 # Estilos visuais unificados
+│   ├── script.js                 # Lógica de ondas, timer e QR codes do Totem
+│   ├── INSTRUCOES.md             # Manual do Totem
+│   └── assets/                   # Mídias locais e bibliotecas
+│       ├── qr-thiago-masseto.png
+│       ├── qr-nicolas-bertacin.png
+│       ├── qr-nicolas-dalastra.png
+│       ├── qrcode.min.js
+│       └── senai-logo.svg
+│
+└── legacy/                       # Scripts históricos / didáticos
+    ├── AIVirtualMouse.py         # Script didático inicial (autopy clássico)
+    ├── HandTrackingModule.py     # Módulo auxiliar legado
+    └── README.md                 # Nota explicativa sobre versões legadas
 ```
 
 ---
 
-## 🖐️ Guia de Gestos e Controles
+## 🛠️ Requisitos do Sistema e Dependências
 
-### 🔒 Segurança Biométrica: Liberação por Pulseira Preta
-> [!IMPORTANT]
-> **Apenas a mão com a pulseira preta tem permissão para controlar o sistema!**
-> - O sistema escaneia em tempo real a região do pulso da mão em busca de uma **pulseira, bracelete ou fita preta** (como pulseiras de silicone, borracha, relógio/smartwatch com pulseira preta ou tecido escuro).
-> - **Mão com pulseira preta**: Exibe o badge verde `LIBERADA [OK XX%]` no pulso e comanda o cursor, cliques e gestos.
-> - **Mão sem pulseira**: Exibe o badge vermelho `BLOQUEADA: SEM PULSEIRA` e o aviso `ACESSO NEGADO: USE A PULSEIRA PRETA`. O mouse não se move e nenhum clique é acionado.
-> - **Se duas mãos estiverem na câmera**: Apenas a mão que estiver usando a pulseira preta assume o controle.
+### 1. Python
+* Recomendado: **Python 3.10 ou 3.11** (compatível com a API nativa do MediaPipe).
+* O projeto possui fallback automático em `tracker_utils.py` compatível com Python 3.12+.
 
-### 🖱️ Versão Pro (`mac_touchless_pro.py` e `ironman_touchless_pro.py`):
-* **Mover o Cursor**: Levante o dedo indicador e aponte para onde deseja mover. O sistema utiliza estabilização One Euro para eliminar qualquer tremor da mão.
-* **Trava Magnética Pré-Clique**: Ao aproximar o polegar do indicador para clicar, o cursor trava automaticamente na posição para evitar que ele escorregue.
-* **Clique com Botão Esquerdo**: Junte a ponta do **polegar com o indicador** (gesto de pinça rápida).
-* **Duplo Clique**: Dê dois toques rápidos de pinça com o polegar e indicador.
-* **Arrastar e Soltar (Drag & Drop)**: Una o polegar e o indicador e **segure por mais de 0.3 segundos**. O sistema ativará o modo de arrasto; abra os dedos para soltar o item.
-* **Clique com Botão Direito**: Faça o gesto de pinça entre a ponta do **polegar e o dedo médio**.
-* **Rolagem de Página (Scroll)**: Levante o **indicador e o dedo médio juntos** (com os outros dedos fechados) e mova para cima ou para baixo para rolar com inércia natural.
+### 2. Instalação das Dependências
+Abra o terminal e execute:
+```powershell
+pip install opencv-python mediapipe pyautogui numpy
+```
+*(Opcional para a interface desktop: `pip install customtkinter pillow`)*
 
-### ⚡ Gestos Especiais Exclusivos do Modo Jarvis (`ironman_touchless_pro.py`):
-* **Alternar Área de Trabalho à Direita**: Deslize a palma aberta rapidamente para a **esquerda** (`Win + Ctrl + Seta Direita`).
-* **Alternar Área de Trabalho à Esquerda**: Deslize a palma aberta rapidamente para a **direita** (`Win + Ctrl + Seta Esquerda`).
-* **Visão de Tarefas (Task View)**: Deslize a palma aberta para **cima** (`Win + Tab`).
-* **Mostrar Área de Trabalho / Minimizar Tudo**: Deslize a palma aberta para **baixo** (`Win + D`).
-* **Zoom Holográfico Stark**: Faça pinça com **as duas mãos** e afaste-as ou aproxime-as para dar zoom (`Ctrl + Scroll`).
-* **Escudo Repulsor**: Mostre as duas palmas abertas para a câmera.
+---
 
-### 🛑 Como Encerrar
-Para sair do programa a qualquer momento, clique na janela de vídeo da câmera e pressione a tecla **`q`**.
+## 🎯 Opções Detalhadas de Execução
+
+### 1. Executando os Scripts Diretamente
+Você também pode rodar cada módulo diretamente pelo seu arquivo Python:
+
+* **Modo Touchless Pro com Área de Testes:**
+  ```powershell
+  py mac_touchless_pro.py --web
+  ```
+
+* **Apenas o Modo Touchless Pro (Sem Navegador):**
+  ```powershell
+  py mac_touchless_pro.py
+  ```
+
+* **Modo Jarvis / Homem de Ferro:**
+  ```powershell
+  py ironman_touchless_pro.py
+  ```
+
+* **Interface Gráfica Desktop Studio:**
+  ```powershell
+  py main_gui.py
+  ```
+
+---
+
+## 🖐️ Guia de Gestos e Controles Touchless
+
+O sistema foi calibrado para resposta instantânea e **não exige pulseiras**:
+
+* **Mover Cursor**: Aponte com o dedo indicador naturalmente. O sistema utiliza estabilização One-Euro para filtrar microtremores mantendo zero latência.
+* **Trava Magnética**: Ao iniciar a aproximação dos dedos para clicar, o cursor ancora suavemente no botão para garantir que o clique não deslize.
+* **Clique com Botão Esquerdo**: Junte o polegar e o dedo indicador (gesto de pinça firme).
+* **Clique Duplo**: Dois toques rápidos de pinça.
+* **Arrastar e Soltar (Drag & Drop)**: Segure a pinça fechada por mais de 0.3 segundos e mova o item; abra os dedos para soltar.
+* **Clique com Botão Direito**: Faça a pinça entre o polegar e o dedo médio.
+* **Rolagem de Página (Scroll)**: Levante o indicador e o dedo médio juntos e mova verticalmente para rolar de forma natural.
+* **Encerrar**: Pressione a tecla **`q`** na janela de vídeo da câmera.
 
 ---
 
 ## ❓ Resolução de Problemas Frequentes
 
 ### 1. `AttributeError: module 'mediapipe' has no attribute 'solutions'`
-* **Causa**: Você está rodando com o Python 3.13 ou instalou uma versão do MediaPipe superior a `0.10.30`.
-* **Solução**: Certifique-se de que o Python 3.11 está instalado e instale a versão com suporte:
-  ```powershell
-  pip uninstall -y mediapipe
-  pip install mediapipe==0.10.14
-  ```
+* **Solução**: O sistema possui fallback nativo com `tracker_utils.py`. Caso deseje a API legacy clássica, utilize Python 3.11 com `pip install mediapipe==0.10.14`.
 
-### 2. A câmera não abre ou a tela fica preta
-* Verifique se outros aplicativos (Teams, WhatsApp, Navegador, Discord) não estão utilizando a webcam.
-* Se você tiver mais de uma câmera conectada ou placas de captura virtuais (OBS Virtual Cam, DroidCam, etc.), edite a linha da câmera no script ou utilize o `mac_touchless_pro.py` que já possui filtro automático de câmeras USB físicas.
+### 2. A webcam não abre ou fica preta
+* Verifique se outros programas (Teams, Discord, Navegador) estão utilizando a webcam.
+* O script seleciona automaticamente a webcam USB conectada através do `camera_utils.py`.
 
-### 3. O cursor se move de forma invertida
-* Os scripts utilizam espelhamento de imagem (`cv2.flip(frame, 1)`) para agir como um espelho intuitivo. Mova sua mão confortavelmente dentro da área retangular marcada na tela.
+### 3. Tela Cheia no Totem
+* Ao abrir o Totem Digital (`py main.py --totem`), pressione a tecla **`F`** no teclado para alternar para o modo tela cheia de apresentação.

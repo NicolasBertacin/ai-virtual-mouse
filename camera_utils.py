@@ -125,8 +125,13 @@ def open_camera(cam_index: int, cam_w: int = 640, cam_h: int = 480) -> Tuple[Opt
         cap = cv2.VideoCapture(cam_index)
 
     if cap.isOpened():
+        # High-FPS MJPG configuration & zero-latency buffer
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+        cap.set(cv2.CAP_PROP_FPS, 60)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
         # Test read
         ret, _ = cap.read()
         if not ret:
@@ -134,7 +139,10 @@ def open_camera(cam_index: int, cam_w: int = 640, cam_h: int = 480) -> Tuple[Opt
             cap.release()
             cap = cv2.VideoCapture(cam_index)
             if cap.isOpened():
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_w)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_h)
+                cap.set(cv2.CAP_PROP_FPS, 60)
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     return cap, cam_name, cam_index
