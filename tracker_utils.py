@@ -3,6 +3,7 @@ Universal Hand Tracker Module (Python 3.8 - 3.13+)
 Provides high-performance hand landmark detection using MediaPipe Tasks API
 with automatic fallback to legacy MediaPipe Solutions API if available.
 Works on Windows, Linux (Raspberry Pi 5 / x86_64), and macOS.
+Includes in-memory RAM acceleration (/dev/shm) and automatic GPU/CPU delegate negotiation.
 """
 
 import os
@@ -76,14 +77,17 @@ class UniversalHandsDetector:
             except Exception:
                 pass
 
-        # Resolve model path relative to this script if not found in CWD
-        if not os.path.isabs(model_path):
+        # 1. Check in-memory RAM disk (/dev/shm) first for maximum performance
+        shm_candidate = os.path.join("/dev/shm", os.path.basename(model_path))
+        if os.path.exists(shm_candidate):
+            model_path = shm_candidate
+        elif not os.path.isabs(model_path):
             script_dir = os.path.dirname(os.path.abspath(__file__))
             candidate = os.path.join(script_dir, model_path)
             if os.path.exists(candidate):
                 model_path = candidate
 
-        # Use Tasks API
+        # 2. Download model if missing
         if not os.path.exists(model_path):
             url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
             urllib.request.urlretrieve(url, model_path)
@@ -91,7 +95,20 @@ class UniversalHandsDetector:
         from mediapipe.tasks import python
         from mediapipe.tasks.python import vision
 
-        base_options = python.BaseOptions(model_asset_path=model_path)
+        # 3. Automatic Hardware Acceleration Delegate (GPU with CPU fallback)
+        delegate = python.BaseOptions.Delegate.CPU
+        if hasattr(python.BaseOptions, "Delegate"):
+            try:
+                test_bo = python.BaseOptions(model_asset_path=model_path, delegate=python.BaseOptions.Delegate.GPU)
+                test_opts = vision.HandLandmarkerOptions(base_options=test_bo, num_hands=1)
+                test_inst = vision.HandLandmarker.create_from_options(test_opts)
+                test_inst.close()
+                delegate = python.BaseOptions.Delegate.GPU
+                print("[MediaPipe] Aceleracao por Hardware (GPU Delegate) ATIVA!")
+            except Exception:
+                delegate = python.BaseOptions.Delegate.CPU
+
+        base_options = python.BaseOptions(model_asset_path=model_path, delegate=delegate)
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             num_hands=max_num_hands,
