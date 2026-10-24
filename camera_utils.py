@@ -1,8 +1,9 @@
-"""
+"""   
+####
 Camera Management and Auto-Detection Utilities for AI Virtual Mouse.
 Detects USB webcams, integrated webcams, and virtual cameras.
 Prioritizes physical external USB webcams.
-Cross-platform support: Windows (DirectShow), Linux / Raspberry Pi (V4L2), and macOS.
+Cross-plat form support: Windows (DirectShow), Linux / Raspberry Pi (V4L2), and macOS.
 """
 
 import sys
@@ -20,6 +21,8 @@ INTEGRATED_KEYWORDS = [
     'integrated', 'internal', 'built-in', 'builtin',
     'laptop', 'facetime', 'front camera', 'rear camera', 'câmera frontal'
 ]
+
+
 
 
 def _get_platform_backend() -> int:
