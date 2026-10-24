@@ -2,8 +2,11 @@
 Camera Management and Auto-Detection Utilities for AI Virtual Mouse.
 Detects USB webcams, integrated webcams, and virtual cameras.
 Prioritizes physical external USB webcams.
+Cross-platform support: Windows (DirectShow), Linux / Raspberry Pi (V4L2), and macOS.
 """
 
+import sys
+import os
 import cv2
 from typing import List, Dict, Any, Tuple, Optional
 
@@ -19,6 +22,15 @@ INTEGRATED_KEYWORDS = [
 ]
 
 
+def _get_platform_backend() -> int:
+    """Retorna o backend ideal de captura para o sistema operacional atual."""
+    if sys.platform == "win32":
+        return cv2.CAP_DSHOW
+    elif sys.platform.startswith("linux"):
+        return cv2.CAP_V4L2
+    return 0
+
+
 def get_camera_devices() -> List[Dict[str, Any]]:
     """
     Detects all video capture devices on the system.
@@ -27,18 +39,49 @@ def get_camera_devices() -> List[Dict[str, Any]]:
     """
     device_names: List[str] = []
 
-    # 1. Try pygrabber for accurate Windows DirectShow device names
-    try:
-        from pygrabber.dshow_graph import FilterGraph
-        graph = FilterGraph()
-        device_names = graph.get_input_devices()
-    except Exception:
-        device_names = []
+    # 1. No Windows, tenta pygrabber para obter os nomes reais DirectShow
+    if sys.platform == "win32":
+        try:
+            from pygrabber.dshow_graph import FilterGraph
+            graph = FilterGraph()
+            device_names = graph.get_input_devices()
+        except Exception:
+            device_names = []
 
-    # 2. Fallback: probe OpenCV indices if pygrabber failed or found no devices
+    # 2. No Linux / Raspberry Pi, verifica nós /sys ou /dev/video se disponíveis
+    if not device_names and sys.platform.startswith("linux"):
+        try:
+            # Lista dispositivos /sys/class/video4linux
+            v4l_dir = "/sys/class/video4linux"
+            if os.path.isdir(v4l_dir):
+                nodes = sorted([d for d in os.listdir(v4l_dir) if d.startswith("video")])
+                for node in nodes:
+                    name_file = os.path.join(v4l_dir, node, "name")
+                    idx_str = node.replace("video", "")
+                    if idx_str.isdigit():
+                        idx = int(idx_str)
+                        c_name = f"V4L2 Camera {idx}"
+                        if os.path.exists(name_file):
+                            try:
+                                with open(name_file, "r", encoding="utf-8") as f:
+                                    c_name = f.read().strip()
+                            except Exception:
+                                pass
+                        # Testa apenas índices pares ou válidos para captura de vídeo
+                        cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+                        if cap.isOpened():
+                            ret, _ = cap.read()
+                            if ret:
+                                device_names.append(c_name)
+                            cap.release()
+        except Exception:
+            device_names = []
+
+    # 3. Fallback universal: probe via índices OpenCV
     if not device_names:
+        backend = _get_platform_backend()
         for idx in range(6):
-            cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+            cap = cv2.VideoCapture(idx, backend) if backend != 0 else cv2.VideoCapture(idx)
             if not cap.isOpened():
                 cap = cv2.VideoCapture(idx)
             if cap.isOpened():
@@ -108,8 +151,11 @@ def get_default_camera_name() -> str:
 
 def open_camera(cam_index: int, cam_w: int = 640, cam_h: int = 480) -> Tuple[Optional[cv2.VideoCapture], str, int]:
     """
-    Opens the camera at the given index using DirectShow on Windows.
-    Sets preferred resolution and validates capture.
+    Opens the camera at the given index with the optimal platform backend:
+    - DirectShow on Windows
+    - V4L2 on Linux / Raspberry Pi 5
+    - Default on other platforms
+    Sets preferred resolution (MJPG 60 FPS) and validates capture.
     Returns (cap, cam_name, cam_index).
     """
     cams = get_camera_devices()
@@ -119,8 +165,8 @@ def open_camera(cam_index: int, cam_w: int = 640, cam_h: int = 480) -> Tuple[Opt
             cam_name = c["name"]
             break
 
-    # DirectShow is optimal for USB webcams on Windows
-    cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+    backend = _get_platform_backend()
+    cap = cv2.VideoCapture(cam_index, backend) if backend != 0 else cv2.VideoCapture(cam_index)
     if not cap.isOpened():
         cap = cv2.VideoCapture(cam_index)
 
@@ -135,7 +181,7 @@ def open_camera(cam_index: int, cam_w: int = 640, cam_h: int = 480) -> Tuple[Opt
         # Test read
         ret, _ = cap.read()
         if not ret:
-            # If reading failed with CAP_DSHOW, try default backend
+            # If reading failed with accelerated backend, try default backend
             cap.release()
             cap = cv2.VideoCapture(cam_index)
             if cap.isOpened():

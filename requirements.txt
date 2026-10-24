@@ -1,0 +1,22 @@
+# AI Virtual Mouse & Totem Digital SENAI
+# Dependências do Sistema (Compatível com Windows, Linux e Raspberry Pi 5)
+
+# Visão Computacional & Rastreamento Gestual
+opencv-python>=4.8.0
+mediapipe>=0.10.14
+numpy>=1.24.0,<2.0.0
+
+# Controle de Cursor e Teclado
+pyautogui>=0.9.54
+Pillow>=9.5.0
+
+# Interface Gráfica Studio (Modo Desktop --gui)
+customtkinter>=5.2.0
+
+# Jogos Desktop Interativos (ex: Flappy Mouse)
+pygame>=2.5.0
+
+# Utilitários de Câmera DirectShow (Apenas Windows)
+pygrabber>=0.2; sys_platform == 'win32'
+comtypes>=1.2.0; sys_platform == 'win32'
+darkdetect>=0.8.0

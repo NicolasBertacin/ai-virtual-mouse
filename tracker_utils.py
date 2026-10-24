@@ -2,6 +2,7 @@
 Universal Hand Tracker Module (Python 3.8 - 3.13+)
 Provides high-performance hand landmark detection using MediaPipe Tasks API
 with automatic fallback to legacy MediaPipe Solutions API if available.
+Works on Windows, Linux (Raspberry Pi 5 / x86_64), and macOS.
 """
 
 import os
@@ -75,6 +76,13 @@ class UniversalHandsDetector:
             except Exception:
                 pass
 
+        # Resolve model path relative to this script if not found in CWD
+        if not os.path.isabs(model_path):
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            candidate = os.path.join(script_dir, model_path)
+            if os.path.exists(candidate):
+                model_path = candidate
+
         # Use Tasks API
         if not os.path.exists(model_path):
             url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
@@ -94,34 +102,34 @@ class UniversalHandsDetector:
         self.tasks_detector = vision.HandLandmarker.create_from_options(options)
 
     def process(self, rgb_frame: np.ndarray) -> HandDetectionResults:
-        """
-        Detects hand landmarks in an RGB frame.
-        Returns a result object with .multi_hand_landmarks attribute.
-        """
         if self.use_legacy and self.legacy_detector:
             return self.legacy_detector.process(rgb_frame)
 
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-        detection = self.tasks_detector.detect(mp_image)
-
-        if not detection.hand_landmarks:
+        if not self.tasks_detector:
             return HandDetectionResults([])
 
-        hands_list = []
-        for raw_hand in detection.hand_landmarks:
-            lms = [NormalizedLandmark(lm.x, lm.y, getattr(lm, 'z', 0.0)) for lm in raw_hand]
-            hands_list.append(SingleHandLandmarks(lms))
+        # MediaPipe Tasks expects mp.Image
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        detection_result = self.tasks_detector.detect(mp_image)
 
-        return HandDetectionResults(hands_list)
+        formatted_hands = []
+        if detection_result.hand_landmarks:
+            for hand in detection_result.hand_landmarks:
+                lms = [NormalizedLandmark(lm.x, lm.y, lm.z) for lm in hand]
+                formatted_hands.append(SingleHandLandmarks(lms))
+
+        return HandDetectionResults(formatted_hands)
 
 
-def draw_hand_skeleton(frame: np.ndarray, hand_landmarks: SingleHandLandmarks, width: int = 640, height: int = 480):
-    """Draws clean connecting lines and landmark dots on an image."""
-    lms = hand_landmarks.landmark
-    for p1_idx, p2_idx in HAND_CONNECTIONS:
-        pt1 = (int(lms[p1_idx].x * width), int(lms[p1_idx].y * height))
-        pt2 = (int(lms[p2_idx].x * width), int(lms[p2_idx].y * height))
-        cv2.line(frame, pt1, pt2, (100, 100, 100), 1)
+def draw_hand_skeleton(frame: np.ndarray, landmarks: SingleHandLandmarks, color: Tuple[int, int, int] = (0, 255, 120), thickness: int = 2):
+    """Draws skeleton connection lines and landmark circles on frame."""
+    h, w, _ = frame.shape
+    coords = [(int(lm.x * w), int(lm.y * h)) for lm in landmarks.landmark]
 
-    for lm in lms:
-        cv2.circle(frame, (int(lm.x * width), int(lm.y * height)), 2, (60, 60, 60), -1)
+    for p1, p2 in HAND_CONNECTIONS:
+        if p1 < len(coords) and p2 < len(coords):
+            cv2.line(frame, coords[p1], coords[p2], color, thickness)
+
+    for pt in coords:
+        cv2.circle(frame, pt, 3, (255, 255, 255), -1)
+        cv2.circle(frame, pt, 5, color, 1)

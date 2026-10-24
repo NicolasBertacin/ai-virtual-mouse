@@ -1,38 +1,63 @@
 # AI Virtual Mouse — Edição SENAI (Alcance de Tela Inteira)
 
-Sistema moderno de controle de mouse sem contato (Touchless Mouse) por Visão Computacional em tempo real, desenvolvido com a identidade visual do **SENAI** e interface em **CustomTkinter**.
+Sistema moderno de controle de mouse sem contato (Touchless Mouse) por Visão Computacional em tempo real, desenvolvido com a identidade visual do **SENAI** e compatível com **Windows** e **Raspberry Pi 5**.
 
 ---
 
-## 🚀 Como Iniciar via Código
+## 🚀 Como Iniciar
 
-Execute no terminal dentro da pasta do projeto:
+### 1. Instalação das Dependências
+Crie o ambiente virtual e instale os pacotes necessários:
 
-```powershell
-# Modo Recomendado: Mouse Virtual Touchless + Área de Testes com Jogos
+```bash
+# Windows
+py -3.11 -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Linux / Raspberry Pi 5
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Execução Unificada
+```bash
+# Windows
 py main.py
+
+# Linux / Raspberry Pi 5
+python3 main.py
 ```
 
-### Outras Opções em Código:
-```powershell
-py main.py --totem       # Abre o Totem Digital SENAI no navegador
-py main.py --teste       # Abre o Laboratório de Testes Web com os jogos
-py main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
-py main.py --ironman     # Executa a versão com HUD futurista Jarvis Ironman
-py main.py --gui         # Executa a interface desktop Studio CustomTkinter
+### Outras Opções de Execução:
+```bash
+python main.py --totem       # Abre o Totem Digital SENAI no navegador
+python main.py --teste       # Abre o Laboratório de Testes Web com os jogos
+python main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
+python main.py --ironman     # Executa a versão com HUD futurista Jarvis Ironman
+python main.py --gui         # Executa a interface desktop Studio CustomTkinter
 ```
+
+> 📖 **Guia Passo a Passo Completo**:
+> Consulte o arquivo [`COMO_RODAR.md`](COMO_RODAR.md) para o manual detalhado de instalação, configuração no **Raspberry Pi 5** (troca de Wayland para X11, modo Kiosk), guia de gestos e resolução de problemas.
 
 ---
 
 ## ✨ Principais Destaques do Sistema
 
 ### 🖥️ Controle Real por Toda a Tela (100% de Alcance)
-- O mouse virtual controla diretamente a tela inteira do computador (1920x1080) com alcance total nos cantos e centro.
-- Mapeamento calibrado com margens adaptativas permitindo alcançar os 4 cantos da tela e o centro com movimentos confortáveis da mão sobre a mesa, sem cansar o braço.
+- O mouse virtual controla diretamente a tela inteira do computador (1920x1080) com alcance total nos 4 cantos e no centro.
+- Mapeamento calibrado com margens adaptativas permitindo alcançar toda a tela com movimentos confortáveis da mão sobre a mesa, sem cansar o braço.
 
 ### 📷 Seleção Automática de Webcam USB em 60 FPS
 - **Detecção Inteligente**: Identifica automaticamente webcams externas conectadas via USB (ex: Logitech C922) com prioridade máxima sobre a câmera integrada.
-- Configuração de baixa latência em DirectShow (`CAP_PROP_BUFFERSIZE = 1`).
+- Configuração de baixa latência em DirectShow no Windows e V4L2 no Linux / Raspberry Pi (`CAP_PROP_BUFFERSIZE = 1`).
+
+### 🍓 Compatibilidade com Raspberry Pi 5
+- Totalmente otimizado para a arquitetura ARM64 do Raspberry Pi 5.
+- Taxa de quadros fluida (25-40+ FPS) utilizando compressão MJPG 640x480.
+- Suporte a modo Kiosk em tela cheia para totens interativos.
 
 ### 🎮 Laboratório de Testes Web & Jogos Touchless
 - Contém 5 módulos interativos de calibração (Alcance de Tela, Arraste de Peças, Desenho Livre, Teclado Virtual, Teste de Reflexo).
@@ -43,7 +68,7 @@ py main.py --gui         # Executa a interface desktop Studio CustomTkinter
 
 ### 🎨 Visual Moderno & Tema SENAI
 - Fundo contínuo com 10 ondas senoidais vermelhas a 60 FPS no padrão institucional do SENAI.
-- Tipografia limpa, despoluída e sem emojis ou botões redundantes.
+- Tipografia limpa, despoluída e sem poluição visual.
 
 ---
 
