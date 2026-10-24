@@ -28,8 +28,9 @@ python3 main.py
 ```
 
 > **O que esse comando faz?**
-> 1. Abre automaticamente a **Área de Testes Web com Jogos** (Flip Bird, Fruit Ninja e Air Hockey) no navegador padrão.
-> 2. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo controlar todo o monitor com a mão no ar.
+> 1. Abre automaticamente a **Área de Testes Web com Jogos** (Flip Bird, Fruit Ninja e Air Hockey) no navegador padrão *(Dica: Pressione **`G`** no navegador para ir direto à aba do jogo)*.
+> 2. Inicia o jogo desktop **Flappy Mouse** (`flappy_mouse.py`) em Pygame.
+> 3. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo controlar todo o monitor com a mão no ar.
 
 ---
 
@@ -203,7 +204,8 @@ O arquivo [`main.py`](file:///c:/Users/Aluno/Desktop/ai-virtual-mouse/main.py) �
 
 | Comando | Descrição |
 | :--- | :--- |
-| `python main.py` | **Padrão**: Inicia o Mouse Virtual 60 FPS + abre a Área de Testes com jogos no navegador |
+| `python main.py` | **Padrão**: Inicia Mouse 60 FPS + Área de Testes Web + Jogo Flappy Mouse Pygame |
+| `python main.py --flappy` (ou `-f`) | Executa o jogo desktop Flappy Mouse (Pygame) com mouse touchless |
 | `python main.py --totem` (ou `-t`) | Abre o Totem Institucional oficial do SENAI no navegador |
 | `python main.py --teste` (ou `-l`) | Abre apenas a Área de Testes Web com os jogos (sem ligar a câmera) |
 | `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem abrir navegador) |

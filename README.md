@@ -32,6 +32,7 @@ python3 main.py
 
 ### Outras Opções de Execução:
 ```bash
+python main.py --flappy      # Executa o jogo desktop Flappy Mouse (Pygame)
 python main.py --totem       # Abre o Totem Digital SENAI no navegador
 python main.py --teste       # Abre o Laboratório de Testes Web com os jogos
 python main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
