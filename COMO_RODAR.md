@@ -30,7 +30,9 @@ python3 main.py
 > **O que esse comando faz?**
 > 1. Abre a **Área de Testes Web SENAI** no navegador padrão via servidor local.
 > 2. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo controlar todo o monitor com a mão no ar.
-> 3. Na página web de testes, ao **pressionar a tecla `G`** no teclado ou clicar no botão **🎮 Flappy Bird [G]**, o sistema executa automaticamente o jogo **Flappy Bird em Python (`flappy_mouse.py`)** no computador!
+> 3. Na página web de testes, você tem atalhos diretos para abrir os jogos em Python no computador:
+>    - Pressione **`G`** ou clique em **🎮 Flappy Bird [G]** para abrir o jogo Flappy Bird (`flappy_mouse.py`).
+>    - Pressione **`N`** ou clique em **🍉 Fruit Ninja [N]** para abrir o jogo Fruit Ninja (`fruit_ninja.py`).
 
 ---
 
@@ -204,14 +206,16 @@ O arquivo [`main.py`](file:///c:/Users/Aluno/Desktop/ai-virtual-mouse/main.py) �
 
 | Comando | Descrição |
 | :--- | :--- |
-| `python main.py` | **Padrão**: Inicia Mouse Touchless 60 FPS + Área de Testes Web (Atalho 'G' abre Flappy Bird Python) |
+| `python main.py` | **Padrão**: Inicia Mouse 60 FPS + Área de Testes Web (Atalhos: 'G' para Flappy, 'N' para Fruit Ninja) |
 | `python main.py --flappy` (ou `-f`) | Executa diretamente o jogo desktop Flappy Bird (Pygame) |
+| `python main.py --fruit` (ou `-n`) | Executa diretamente o jogo desktop Fruit Ninja (Pygame) |
 | `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem navegador) |
 | `python main.py --totem` (ou `-t`) | Abre o Totem Institucional oficial do SENAI no navegador |
 | `python main.py --ironman` (ou `-i`) | Inicia a versão futurista Jarvis com HUD holográfico do Homem de Ferro |
 | `python main.py --gui` (ou `-g`) | Inicia a interface gráfica desktop desenvolvida em CustomTkinter |
 
 ### Executando Módulos Específicos Diretamente:
+* **Fruit Ninja Standalone (Pygame)**: `python fruit_ninja.py`
 * **Flappy Mouse Standalone (Pygame)**: `python flappy_mouse.py`
 * **Interface Desktop Studio**: `python main_gui.py`
 * **Motor Touchless Pro Direto**: `python mac_touchless_pro.py`

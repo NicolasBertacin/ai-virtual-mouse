@@ -30,10 +30,13 @@ py main.py
 python3 main.py
 ```
 
-> 🎮 **Atalho do Jogo**: Ao executar `py main.py`, a Área de Testes Web é aberta junto ao Mouse Touchless. Pressione a tecla **`G`** no teclado ou clique no botão **Flappy Bird [G]** na página para abrir o jogo Flappy Bird em Python no computador!
+> 🎮 **Atalhos dos Jogos**: Ao executar `py main.py`, a Área de Testes Web é aberta junto ao Mouse Touchless:
+> - Pressione **`G`** no teclado ou clique em **Flappy Bird [G]** para abrir o jogo Flappy Bird em Python no PC!
+> - Pressione **`N`** no teclado ou clique em **Fruit Ninja [N]** para abrir o jogo Fruit Ninja em Python no PC!
 
 ### Outras Opções de Execução:
 ```bash
+python main.py --fruit       # Executa diretamente o jogo desktop Fruit Ninja (Pygame)
 python main.py --flappy      # Executa diretamente o jogo desktop Flappy Bird (Pygame)
 python main.py --totem       # Abre o Totem Digital SENAI no navegador
 python main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
@@ -61,8 +64,9 @@ python main.py --gui         # Executa a interface desktop Studio CustomTkinter
 - Taxa de quadros fluida (25-40+ FPS) utilizando compressão MJPG 640x480.
 - Suporte a modo Kiosk em tela cheia para totens interativos.
 
-### 🎮 Jogo Flappy Bird 100% Python & Área de Calibração
-- **Flappy Bird Touchless (`flappy_mouse.py`)**: Jogo interativo desenvolvido em Pygame puro. O pássaro segue os movimentos da mão no ar com física suave, suporte a tela cheia (`F`), reinício por pinça ou tecla espaço e pontuação recorde.
+### 🎮 Jogos 100% Python Touchless & Área de Calibração
+- **Fruit Ninja Touchless (`fruit_ninja.py`)**: Fatie melancias, laranjas, maçãs, bananas e cocos cortando o ar com a mão! Efeito de lâmina laser neon com física de divisão de frutas, partículas de suco, combos e bombas para desviar.
+- **Flappy Bird Touchless (`flappy_mouse.py`)**: Jogo clássico onde o pássaro segue os movimentos da sua mão no ar com física suave, suporte a tela cheia (`F`), reinício por pinça e recorde.
 - **Área de Calibração Web**: 4 módulos interativos para testar e calibrar a precisão e o alcance do mouse virtual (Alcance de Tela Inteira, Arraste de Peças, Desenho Livre e Teste de Reflexo).
 
 ### 🎨 Visual Moderno & Tema SENAI

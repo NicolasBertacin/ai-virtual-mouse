@@ -994,9 +994,12 @@
           <span>Monitor de Câmera</span>
         </button>
 
-        <div class="nav-section-label">Jogo Desktop</div>
+        <div class="nav-section-label">Jogos em Python</div>
         <button class="nav-item btn-game-launch" id="btnLaunchFlappy" title="Atalho: pressione 'G' no teclado para abrir no PC">
           <span>🎮 Flappy Bird [G]</span>
+        </button>
+        <button class="nav-item btn-game-launch" id="btnLaunchFruit" title="Atalho: pressione 'N' no teclado para abrir no PC">
+          <span>🍉 Fruit Ninja [N]</span>
         </button>
       </nav>
 
@@ -1660,6 +1663,42 @@
         btnLaunchFlappy.addEventListener("click", launchFlappyPython);
       }
 
+      // Função para acionar o jogo Fruit Ninja em Python no PC via API local
+      function launchFruitPython() {
+        showToast("🍉 Abrindo Fruit Ninja (Python) no PC...");
+        playSuccessChime();
+
+        const apiUrl = window.location.origin.startsWith("http")
+          ? (window.location.origin + "/api/launch-fruit")
+          : "http://127.0.0.1:8765/api/launch-fruit";
+
+        fetch(apiUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "already_running") {
+              showToast("🍉 Fruit Ninja já está em execução no PC!");
+            } else {
+              showToast("🍉 Fruit Ninja aberto com sucesso no PC!");
+            }
+          })
+          .catch(err => {
+            console.warn("API de lançamento falhou em " + apiUrl + ", tentando porta 8765...", err);
+            fetch("http://127.0.0.1:8765/api/launch-fruit")
+              .then(res => res.json())
+              .then(() => {
+                showToast("🍉 Fruit Ninja aberto com sucesso!");
+              })
+              .catch(() => {
+                showToast("⚠️ Verifique se 'py main.py' está em execução no terminal.");
+              });
+          });
+      }
+
+      const btnLaunchFruit = document.getElementById("btnLaunchFruit");
+      if (btnLaunchFruit) {
+        btnLaunchFruit.addEventListener("click", launchFruitPython);
+      }
+
       window.addEventListener("keydown", (e) => {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
 
@@ -1667,6 +1706,8 @@
           toggleFullScreen();
         } else if (e.key === "g" || e.key === "G") {
           launchFlappyPython();
+        } else if (e.key === "n" || e.key === "N") {
+          launchFruitPython();
         }
       });
 

@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-AI Virtual Mouse & Área de Testes SENAI - Launcher Unificado
-============================================================
+AI Virtual Mouse & Jogos Touchless SENAI - Launcher Unificado
+=============================================================
 Inicializa o mouse virtual touchless (60 FPS) integrado à Área de
-Testes Web e ao jogo Flappy Bird em Python puro (Pygame).
+Testes Web e aos jogos Flappy Bird e Fruit Ninja em Python puro (Pygame).
 
 Uso:
   py main.py                 -> Abre Área de Testes Web + Motor Touchless 60 FPS
-                                (Pressione 'G' na página web para abrir o Flappy Bird em Python no PC)
+                                (Atalho 'G' abre Flappy Bird | Atalho 'N' abre Fruit Ninja)
   py main.py --flappy        -> Executa diretamente o Jogo Flappy Bird (Pygame)
+  py main.py --fruit         -> Executa diretamente o Jogo Fruit Ninja (Pygame)
   py main.py --mouse-only    -> Executa apenas o Mouse Touchless sem navegador
   py main.py --totem         -> Abre o Totem Digital institucional no navegador
   py main.py --ironman       -> Executa o modo HUD Jarvis / Homem de Ferro
@@ -28,10 +29,14 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOTEM_INDEX = os.path.join(ROOT_DIR, "totem-senai", "index.html")
 TESTE_INDEX = os.path.join(ROOT_DIR, "totem-senai", "teste.html")
 FLAPPY_SCRIPT = os.path.join(ROOT_DIR, "flappy_mouse.py")
+FRUIT_SCRIPT = os.path.join(ROOT_DIR, "fruit_ninja.py")
 
-# Processo global do jogo Flappy Bird
+# Processos globais dos jogos
 FLAPPY_PROC = None
 FLAPPY_LOCK = threading.Lock()
+
+FRUIT_PROC = None
+FRUIT_LOCK = threading.Lock()
 
 
 def launch_flappy_game():
@@ -55,16 +60,48 @@ def launch_flappy_game():
             return False
 
 
+def launch_fruit_game():
+    """Inicia o jogo fruit_ninja.py em processo independente se não estiver em execução."""
+    global FRUIT_PROC
+    with FRUIT_LOCK:
+        if FRUIT_PROC and FRUIT_PROC.poll() is None:
+            print("[Fruit Ninja] Jogo já está em execução no PC.")
+            return False
+
+        if os.path.exists(FRUIT_SCRIPT):
+            print("\n[Fruit Ninja] Iniciando Jogo Fruit Ninja em Python (Pygame)...")
+            try:
+                FRUIT_PROC = subprocess.Popen([sys.executable, FRUIT_SCRIPT])
+                return True
+            except Exception as e:
+                print(f"[Erro] Falha ao iniciar fruit_ninja.py: {e}")
+                return False
+        else:
+            print(f"[Erro] Script do jogo não encontrado: {FRUIT_SCRIPT}")
+            return False
+
+
 class AppRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """Servidor HTTP local para fornecer a interface web e receber o comando 'G'."""
+    """Servidor HTTP local para fornecer a interface web e receber comandos dos jogos."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT_DIR, **kwargs)
 
     def do_GET(self):
-        # Endpoint de acionamento do Flappy Bird em Python
+        # Endpoint: Flappy Bird
         if self.path == "/api/launch-flappy":
             launched = launch_flappy_game()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            status = "launched" if launched else "already_running"
+            self.wfile.write(f'{{"status": "{status}"}}'.encode("utf-8"))
+            return
+
+        # Endpoint: Fruit Ninja
+        elif self.path == "/api/launch-fruit":
+            launched = launch_fruit_game()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -117,18 +154,19 @@ def open_in_browser(url: str, title: str):
 
 def print_banner(server_port=None):
     print("=" * 64)
-    print("      AI VIRTUAL MOUSE & ÁREA DE TESTES SENAI - 60 FPS")
+    print("      AI VIRTUAL MOUSE & JOGOS TOUCHLESS SENAI - 60 FPS")
     print("=" * 64)
-    print(" - Mover Cursor: Aponte com o indicador naturalmente")
+    print(" - Mover Cursor / Lâmina: Aponte com o indicador naturalmente")
     print(" - Trava Magnética: Ao iniciar a pinça, o cursor ancora")
     print(" - Clique Esquerdo: Junte polegar + indicador (pinça)")
     print(" - Clique Duplo: Dois toques rápidos de pinça")
     print(" - Arrastar & Soltar: Segure a pinça fechada (> 0.3s)")
     print(" - Clique Direito: Pinça entre polegar + dedo médio")
     print(" - Rolagem (Scroll): Levante indicador + médio juntos")
-    print(" - Atalho Flappy Bird: Pressione 'G' na página web para abrir o jogo no PC")
-    print(" - Tela Cheia Web: Pressione 'F' no navegador")
-    print(" - Sair: Pressione 'q' na janela de vídeo da câmera")
+    print(" - Atalho Flappy Bird: Pressione 'G' na página web para abrir")
+    print(" - Atalho Fruit Ninja: Pressione 'N' na página web para abrir")
+    print(" - Tela Cheia: Pressione 'F' no navegador ou nos jogos")
+    print(" - Sair: Pressione 'q' na janela de vídeo ou jogo")
     if server_port:
         print(f" - Servidor Local Ativo: http://127.0.0.1:{server_port}")
     print("=" * 64)
@@ -136,13 +174,18 @@ def print_banner(server_port=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sistema de Mouse Virtual Touchless e Totem Digital SENAI",
+        description="Sistema de Mouse Virtual Touchless e Jogos SENAI (Python)",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
         "--flappy", "-f",
         action="store_true",
         help="Executa diretamente o jogo desktop Flappy Bird (Pygame)."
+    )
+    parser.add_argument(
+        "--fruit", "-n",
+        action="store_true",
+        help="Executa diretamente o jogo desktop Fruit Ninja (Pygame)."
     )
     parser.add_argument(
         "--mouse-only", "-m",
@@ -180,6 +223,14 @@ def main():
             FLAPPY_PROC.wait()
         return
 
+    # Opção: Jogo Fruit Ninja Direto
+    if args.fruit:
+        print_banner()
+        launch_fruit_game()
+        if FRUIT_PROC:
+            FRUIT_PROC.wait()
+        return
+
     # Opção: Apenas Mouse Touchless
     if args.mouse_only:
         print_banner()
@@ -204,7 +255,7 @@ def main():
         run_app()
         return
 
-    # Inicia o Servidor Local HTTP para servir a aplicação web e a API do Flappy
+    # Inicia o Servidor Local HTTP para servir a aplicação web e as APIs dos jogos
     server, port = start_local_server()
 
     # Opção: Totem Digital no Navegador
@@ -221,12 +272,11 @@ def main():
         return
 
     # Modo Padrão (py main.py): Abre a Área de Testes Web + Inicia Motor Touchless
-    # O Flappy Bird em Python é acionado ao pressionar 'G' ou clicar no botão na web
     print_banner(port)
     url = f"http://127.0.0.1:{port}/totem-senai/teste.html"
     print("\n[1/2] Abrindo Área de Testes Web no Navegador...")
     print(f"      URL: {url}")
-    print("      (Dica: Pressione 'G' na página web para abrir o Flappy Bird em Python)")
+    print("      (Atalhos: 'G' para Flappy Bird | 'N' para Fruit Ninja)")
     open_in_browser(url, "Área de Testes Web SENAI")
 
     print("\n[2/2] Inicializando Sistema Touchless Pro (60 FPS)...")
@@ -234,10 +284,15 @@ def main():
     try:
         run_touchless()
     finally:
-        # Encerramento limpo do Flappy Bird e do servidor HTTP
+        # Encerramento limpo dos jogos e do servidor HTTP
         if FLAPPY_PROC and FLAPPY_PROC.poll() is None:
             try:
                 FLAPPY_PROC.terminate()
+            except Exception:
+                pass
+        if FRUIT_PROC and FRUIT_PROC.poll() is None:
+            try:
+                FRUIT_PROC.terminate()
             except Exception:
                 pass
         try:
