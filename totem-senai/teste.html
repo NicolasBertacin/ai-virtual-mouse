@@ -1627,8 +1627,50 @@
         btnFullscreen.addEventListener("click", toggleFullScreen);
       }
 
+      // Monitoramento para retornar em Tela Cheia quando o jogo em Python fechar
+      let gameWatchTimer = null;
+      let gameWasActive = false;
+
+      function startWatchingGameEnd() {
+        if (gameWatchTimer) clearInterval(gameWatchTimer);
+        gameWasActive = false;
+
+        const apiUrl = window.location.origin.startsWith("http")
+          ? (window.location.origin + "/api/game-status")
+          : "http://127.0.0.1:8765/api/game-status";
+
+        gameWatchTimer = setInterval(() => {
+          fetch(apiUrl)
+            .then(res => res.json())
+            .then(data => {
+              if (data.active) {
+                gameWasActive = true;
+              } else if (gameWasActive && !data.active) {
+                // O jogo em Python acabou de fechar!
+                clearInterval(gameWatchTimer);
+                gameWatchTimer = null;
+                gameWasActive = false;
+
+                // Restaura o foco na janela e ativa a tela cheia
+                window.focus();
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                }
+                showToast("🖥️ Bem-vindo de volta! Área de Testes em Tela Cheia.");
+                playSuccessChime();
+              }
+            })
+            .catch(() => {});
+        }, 400);
+      }
+
       // Função para acionar o jogo Flappy Bird em Python no PC via API local
       function launchFlappyPython() {
+        // Ativa imediatamente tela cheia na web antes de abrir o jogo
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+
         showToast("🎮 Abrindo Flappy Bird em Tela Cheia no PC...");
         playSuccessChime();
 
@@ -1644,6 +1686,7 @@
             } else {
               showToast("🎮 Flappy Bird aberto em Tela Cheia no PC!");
             }
+            startWatchingGameEnd();
           })
           .catch(err => {
             console.warn("API de lançamento falhou em " + apiUrl + ", tentando porta 8765...", err);
@@ -1651,6 +1694,7 @@
               .then(res => res.json())
               .then(() => {
                 showToast("🎮 Flappy Bird aberto com sucesso!");
+                startWatchingGameEnd();
               })
               .catch(() => {
                 showToast("⚠️ Verifique se 'py main.py' está em execução no terminal.");
@@ -1665,6 +1709,11 @@
 
       // Função para acionar o jogo Fruit Ninja em Python no PC via API local
       function launchFruitPython() {
+        // Ativa imediatamente tela cheia na web antes de abrir o jogo
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+
         showToast("🍉 Abrindo Fruit Ninja em Tela Cheia no PC...");
         playSuccessChime();
 
@@ -1680,6 +1729,7 @@
             } else {
               showToast("🍉 Fruit Ninja aberto em Tela Cheia no PC!");
             }
+            startWatchingGameEnd();
           })
           .catch(err => {
             console.warn("API de lançamento falhou em " + apiUrl + ", tentando porta 8765...", err);
@@ -1687,6 +1737,7 @@
               .then(res => res.json())
               .then(() => {
                 showToast("🍉 Fruit Ninja aberto com sucesso!");
+                startWatchingGameEnd();
               })
               .catch(() => {
                 showToast("⚠️ Verifique se 'py main.py' está em execução no terminal.");
@@ -1698,6 +1749,21 @@
       if (btnLaunchFruit) {
         btnLaunchFruit.addEventListener("click", launchFruitPython);
       }
+
+      // Garantir tela cheia quando a janela voltar a ficar visível ou receber foco
+      window.addEventListener("focus", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }
+      });
 
       window.addEventListener("keydown", (e) => {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;

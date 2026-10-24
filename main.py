@@ -24,6 +24,7 @@ import webbrowser
 import subprocess
 import threading
 import http.server
+import time
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOTEM_INDEX = os.path.join(ROOT_DIR, "totem-senai", "index.html")
@@ -31,12 +32,38 @@ TESTE_INDEX = os.path.join(ROOT_DIR, "totem-senai", "teste.html")
 FLAPPY_SCRIPT = os.path.join(ROOT_DIR, "flappy_mouse.py")
 FRUIT_SCRIPT = os.path.join(ROOT_DIR, "fruit_ninja.py")
 
+CURRENT_SERVER_PORT = 8765
+
 # Processos globais dos jogos
 FLAPPY_PROC = None
 FLAPPY_LOCK = threading.Lock()
 
 FRUIT_PROC = None
 FRUIT_LOCK = threading.Lock()
+
+
+def start_game_monitor(proc):
+    """Monitora o processo do jogo em segundo plano. Ao fechar, restaura a web em tela cheia."""
+    def _run():
+        proc.wait()
+        print("\n[Sistema] Jogo encerrado pelo usuário. Restaurando Área de Testes Web em Tela Cheia...")
+        url = f"http://127.0.0.1:{CURRENT_SERVER_PORT}/totem-senai/teste.html"
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
+
+        # Aguarda brevemente para o navegador recuperar o foco do sistema operacional
+        time.sleep(0.4)
+        try:
+            import pyautogui
+            # F11 ativa tela cheia nativa no navegador (Chrome/Edge/Firefox)
+            pyautogui.press('f11')
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
 
 
 def launch_flappy_game():
@@ -51,6 +78,7 @@ def launch_flappy_game():
             print("\n[Flappy] Iniciando Jogo Flappy Bird em Python (Pygame)...")
             try:
                 FLAPPY_PROC = subprocess.Popen([sys.executable, FLAPPY_SCRIPT])
+                start_game_monitor(FLAPPY_PROC)
                 return True
             except Exception as e:
                 print(f"[Erro] Falha ao iniciar flappy_mouse.py: {e}")
@@ -72,6 +100,7 @@ def launch_fruit_game():
             print("\n[Fruit Ninja] Iniciando Jogo Fruit Ninja em Python (Pygame)...")
             try:
                 FRUIT_PROC = subprocess.Popen([sys.executable, FRUIT_SCRIPT])
+                start_game_monitor(FRUIT_PROC)
                 return True
             except Exception as e:
                 print(f"[Erro] Falha ao iniciar fruit_ninja.py: {e}")
@@ -110,6 +139,18 @@ class AppRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(f'{{"status": "{status}"}}'.encode("utf-8"))
             return
 
+        # Endpoint: Status dos jogos (para a web detectar quando fechou e restaurar tela cheia)
+        elif self.path == "/api/game-status":
+            flappy_on = bool(FLAPPY_PROC and FLAPPY_PROC.poll() is None)
+            fruit_on = bool(FRUIT_PROC and FRUIT_PROC.poll() is None)
+            any_on = flappy_on or fruit_on
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(f'{{"active": {str(any_on).lower()}}}'.encode("utf-8"))
+            return
+
         # Redirecionamentos amigáveis
         elif self.path in ("/", "/teste", "/teste.html"):
             self.send_response(302)
@@ -135,11 +176,13 @@ class AppRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 def start_local_server(preferred_port=8765):
     """Inicia o servidor local em uma porta livre em segundo plano."""
+    global CURRENT_SERVER_PORT
     for port in range(preferred_port, preferred_port + 20):
         try:
             server = http.server.HTTPServer(("127.0.0.1", port), AppRequestHandler)
             t = threading.Thread(target=server.serve_forever, daemon=True)
             t.start()
+            CURRENT_SERVER_PORT = port
             return server, port
         except OSError:
             continue
