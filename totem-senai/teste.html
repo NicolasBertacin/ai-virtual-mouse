@@ -920,6 +920,20 @@
       transform: scale(1.03);
     }
 
+    .btn-game-launch {
+      border: 1px solid rgba(227, 6, 19, 0.4) !important;
+      background: rgba(227, 6, 19, 0.06);
+      font-weight: 700;
+      color: #E30613 !important;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-game-launch:hover {
+      background: #E30613 !important;
+      color: #FFFFFF !important;
+      transform: translateX(4px);
+      box-shadow: 0 4px 14px rgba(227, 6, 19, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -978,6 +992,11 @@
         <div class="nav-section-label">Sistema</div>
         <button class="nav-item" data-view="camera">
           <span>Monitor de Câmera</span>
+        </button>
+
+        <div class="nav-section-label">Jogo Desktop</div>
+        <button class="nav-item btn-game-launch" id="btnLaunchFlappy" title="Atalho: pressione 'G' no teclado para abrir no PC">
+          <span>🎮 Flappy Bird [G]</span>
         </button>
       </nav>
 
@@ -1605,14 +1624,49 @@
         btnFullscreen.addEventListener("click", toggleFullScreen);
       }
 
+      // Função para acionar o jogo Flappy Bird em Python no PC via API local
+      function launchFlappyPython() {
+        showToast("🎮 Abrindo Flappy Bird (Python) no PC...");
+        playSuccessChime();
+
+        const apiUrl = window.location.origin.startsWith("http")
+          ? (window.location.origin + "/api/launch-flappy")
+          : "http://127.0.0.1:8765/api/launch-flappy";
+
+        fetch(apiUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "already_running") {
+              showToast("🎮 Flappy Bird já está em execução no PC!");
+            } else {
+              showToast("🎮 Flappy Bird aberto com sucesso no PC!");
+            }
+          })
+          .catch(err => {
+            console.warn("API de lançamento falhou em " + apiUrl + ", tentando porta 8765...", err);
+            fetch("http://127.0.0.1:8765/api/launch-flappy")
+              .then(res => res.json())
+              .then(() => {
+                showToast("🎮 Flappy Bird aberto com sucesso!");
+              })
+              .catch(() => {
+                showToast("⚠️ Verifique se 'py main.py' está em execução no terminal.");
+              });
+          });
+      }
+
+      const btnLaunchFlappy = document.getElementById("btnLaunchFlappy");
+      if (btnLaunchFlappy) {
+        btnLaunchFlappy.addEventListener("click", launchFlappyPython);
+      }
+
       window.addEventListener("keydown", (e) => {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
 
         if (e.key === "f" || e.key === "F") {
           toggleFullScreen();
         } else if (e.key === "g" || e.key === "G") {
-          switchView("flappy");
-          showToast("🎮 O jogo ativo é o Flappy Bird em Python (flappy_mouse.py)!");
+          launchFlappyPython();
         }
       });
 

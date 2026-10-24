@@ -30,11 +30,12 @@ py main.py
 python3 main.py
 ```
 
+> 🎮 **Atalho do Jogo**: Ao executar `py main.py`, a Área de Testes Web é aberta junto ao Mouse Touchless. Pressione a tecla **`G`** no teclado ou clique no botão **Flappy Bird [G]** na página para abrir o jogo Flappy Bird em Python no computador!
+
 ### Outras Opções de Execução:
 ```bash
-python main.py --flappy      # Executa o jogo desktop Flappy Mouse (Pygame)
+python main.py --flappy      # Executa diretamente o jogo desktop Flappy Bird (Pygame)
 python main.py --totem       # Abre o Totem Digital SENAI no navegador
-python main.py --teste       # Abre a Área de Calibração e Testes Web
 python main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
 python main.py --ironman     # Executa a versão com HUD futurista Jarvis Ironman
 python main.py --gui         # Executa a interface desktop Studio CustomTkinter

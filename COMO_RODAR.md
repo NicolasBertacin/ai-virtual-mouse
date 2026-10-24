@@ -27,10 +27,10 @@ py main.py
 python3 main.py
 ```
 
-> **O que esse comando faz? (100% Python)**
-> 1. Inicia o jogo desktop **Flappy Bird** (`flappy_mouse.py`) em Pygame puro.
-> 2. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo pilotar o pássaro e controlar o computador apenas movendo a mão no ar.
-> 3. Funciona com altíssima performance, sem sobrecarga de navegador web.
+> **O que esse comando faz?**
+> 1. Abre a **Área de Testes Web SENAI** no navegador padrão via servidor local.
+> 2. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo controlar todo o monitor com a mão no ar.
+> 3. Na página web de testes, ao **pressionar a tecla `G`** no teclado ou clicar no botão **🎮 Flappy Bird [G]**, o sistema executa automaticamente o jogo **Flappy Bird em Python (`flappy_mouse.py`)** no computador!
 
 ---
 
@@ -204,10 +204,9 @@ O arquivo [`main.py`](file:///c:/Users/Aluno/Desktop/ai-virtual-mouse/main.py) �
 
 | Comando | Descrição |
 | :--- | :--- |
-| `python main.py` | **Padrão (100% Python)**: Inicia Mouse Touchless 60 FPS + Jogo Flappy Bird Pygame |
-| `python main.py --flappy` (ou `-f`) | Executa apenas o jogo desktop Flappy Bird (Pygame) |
-| `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem abrir jogo) |
-| `python main.py --teste` (ou `--web`) | Abre a Área de Testes e Calibração no navegador |
+| `python main.py` | **Padrão**: Inicia Mouse Touchless 60 FPS + Área de Testes Web (Atalho 'G' abre Flappy Bird Python) |
+| `python main.py --flappy` (ou `-f`) | Executa diretamente o jogo desktop Flappy Bird (Pygame) |
+| `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem navegador) |
 | `python main.py --totem` (ou `-t`) | Abre o Totem Institucional oficial do SENAI no navegador |
 | `python main.py --ironman` (ou `-i`) | Inicia a versão futurista Jarvis com HUD holográfico do Homem de Ferro |
 | `python main.py --gui` (ou `-g`) | Inicia a interface gráfica desktop desenvolvida em CustomTkinter |
