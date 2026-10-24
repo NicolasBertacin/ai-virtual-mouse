@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import urllib.request
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 
 HAND_CONNECTIONS = [
@@ -138,14 +138,22 @@ class UniversalHandsDetector:
         return HandDetectionResults(formatted_hands)
 
 
-def draw_hand_skeleton(frame: np.ndarray, landmarks: SingleHandLandmarks, color: Tuple[int, int, int] = (0, 255, 120), thickness: int = 2):
+def draw_hand_skeleton(frame: np.ndarray, landmarks: SingleHandLandmarks, color: Any = (0, 255, 120), thickness: int = 2):
     """Draws skeleton connection lines and landmark circles on frame."""
+    # Proteção: se color for um int/float (ex: CAM_W=640) ou espessura exorbitante (ex: CAM_H=480)
+    if isinstance(color, (int, float)):
+        color = (0, 255, 120)
+    elif not isinstance(color, (tuple, list)) or len(color) < 3:
+        color = (0, 255, 120)
+    if isinstance(thickness, (int, float)) and thickness > 15:
+        thickness = 2
+
     h, w, _ = frame.shape
     coords = [(int(lm.x * w), int(lm.y * h)) for lm in landmarks.landmark]
 
     for p1, p2 in HAND_CONNECTIONS:
         if p1 < len(coords) and p2 < len(coords):
-            cv2.line(frame, coords[p1], coords[p2], color, thickness)
+            cv2.line(frame, coords[p1], coords[p2], color, int(thickness))
 
     for pt in coords:
         cv2.circle(frame, pt, 3, (255, 255, 255), -1)

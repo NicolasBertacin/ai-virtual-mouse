@@ -6,7 +6,7 @@ MacBook-Tier Touchless Mouse System - Ultra-Fluid High FPS Edition
 Otimizações de Baixíssima Latência:
 - Movimento contínuo 1:1 sem travamento ou delay artificial.
 - Filtro One-Euro calibrado para alta velocidade (beta 0.45, sem arrasto).
-- Chamadas Win32 nativas (ctypes.user32) com 0ms de overhead.
+- Chamadas Win32 nativas no Windows e X11 XWarpPointer no Linux/Raspberry Pi (0ms overhead).
 - Clique por pinça instantâneo (polegar + indicador) e suporte a Arrastar & Soltar.
 - Rolagem suave com dois dedos (indicador + médio).
 - Clique com o botão direito via pinça (polegar + médio).
@@ -22,7 +22,7 @@ import cv2
 import numpy as np
 
 # ---------------------------------------------------------
-# 1. Funções de Mouse de Baixíssima Latência (Win32 API pura)
+# 1. Funções de Mouse de Baixíssima Latência (Win32 / X11 C-Level)
 # ---------------------------------------------------------
 try:
     user32 = ctypes.windll.user32
@@ -67,8 +67,24 @@ except Exception:
     pyautogui.FAILSAFE = False
     pyautogui.PAUSE = 0.0
 
-    def fast_set_cursor(x: int, y: int):
-        pyautogui.moveTo(int(x), int(y))
+    fast_set_cursor = None
+    # No Linux/Raspberry Pi (X11), aceleração direta via libX11 Ctypes (0ms overhead)
+    if sys.platform.startswith("linux"):
+        try:
+            x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
+            x11_display = x11.XOpenDisplay(None)
+            if x11_display:
+                x11_root = x11.XDefaultRootWindow(x11_display)
+                def _x11_set_cursor(x: int, y: int):
+                    x11.XWarpPointer(x11_display, 0, x11_root, 0, 0, 0, 0, int(x), int(y))
+                    x11.XFlush(x11_display)
+                fast_set_cursor = _x11_set_cursor
+        except Exception:
+            fast_set_cursor = None
+
+    if fast_set_cursor is None:
+        def fast_set_cursor(x: int, y: int):
+            pyautogui.moveTo(int(x), int(y))
 
     def fast_click():
         pyautogui.click()
@@ -141,6 +157,9 @@ def get_usb_camera_cap(cam_w=640, cam_h=480):
 # 3. Loop Principal de Alta Precisão e Baixo Delay
 # ---------------------------------------------------------
 def main():
+    cv2.setUseOptimized(True)
+    cv2.setNumThreads(4)
+
     CAM_W, CAM_H = 640, 480
     cap, cam_name, cam_idx = get_usb_camera_cap(CAM_W, CAM_H)
 
@@ -217,7 +236,8 @@ def main():
 
         if results.multi_hand_landmarks:
             hand_landmarks = results.multi_hand_landmarks[0]
-            draw_hand_skeleton(frame, hand_landmarks, CAM_W, CAM_H)
+            # Desenha o esqueleto fino e limpo sem cobrir a tela (espessura 2, cor verde neon)
+            draw_hand_skeleton(frame, hand_landmarks, color=(0, 255, 120), thickness=2)
             landmarks = hand_landmarks.landmark
 
             def get_px(idx):
@@ -281,7 +301,7 @@ def main():
                 smooth_x = max(0, min(SCREEN_W - 1, smooth_x))
                 smooth_y = max(0, min(SCREEN_H - 1, smooth_y))
 
-                # Atualização contínua do cursor no Windows em tempo real
+                # Atualização contínua do cursor em tempo real
                 fast_set_cursor(smooth_x, smooth_y)
 
                 # ---------------------------------------------------------
@@ -339,7 +359,7 @@ def main():
                         if dist_thumb_middle > (45 * scale_ratio):
                             is_right_pinching = False
 
-            # Mira e feedback visual de toque
+            # Mira e feedback visual de toque limpo
             ring_color = (0, 255, 0) if is_pinched else ((0, 120, 255) if is_right_pinching else (0, 255, 255))
             cv2.line(frame, thumb_px, index_px, (160, 160, 160), 1)
             cv2.circle(frame, index_px, 6, (0, 255, 255), -1)
