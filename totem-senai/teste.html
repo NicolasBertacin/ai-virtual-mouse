@@ -976,8 +976,8 @@
         </button>
 
         <div class="nav-section-label">Jogos Touchless</div>
-        <button class="nav-item" data-view="flappy">
-          <span>Flip Bird</span>
+        <button class="nav-item" data-view="flappy" title="Atalho: pressione 'G' no teclado para abrir">
+          <span>Flip Bird / Flappy [G]</span>
         </button>
         <button class="nav-item" data-view="fruitninja">
           <span>Fruit Ninja</span>
@@ -1443,33 +1443,43 @@
 
       const moduleTitle = document.getElementById("moduleTitle");
 
+      function switchView(viewKey) {
+        if (!panels[viewKey]) return;
+
+        navItems.forEach(i => {
+          if (i.dataset.view === viewKey) {
+            i.classList.add("active");
+          } else {
+            i.classList.remove("active");
+          }
+        });
+
+        Object.keys(panels).forEach(k => {
+          if (k === viewKey) {
+            panels[k].classList.add("active");
+          } else {
+            panels[k].classList.remove("active");
+          }
+        });
+
+        if (titles[viewKey]) {
+          moduleTitle.textContent = titles[viewKey];
+        }
+
+        if (viewKey === "draw") {
+          resizeDrawingCanvas();
+        } else if (viewKey === "flappy") {
+          initFlappyGame();
+        } else if (viewKey === "fruitninja") {
+          initFruitNinjaGame();
+        } else if (viewKey === "hockey") {
+          initAirHockeyGame();
+        }
+      }
+
       navItems.forEach(item => {
         item.addEventListener("click", () => {
-          navItems.forEach(i => i.classList.remove("active"));
-          item.classList.add("active");
-
-          const viewKey = item.dataset.view;
-          Object.keys(panels).forEach(k => {
-            if (k === viewKey) {
-              panels[k].classList.add("active");
-            } else {
-              panels[k].classList.remove("active");
-            }
-          });
-
-          if (titles[viewKey]) {
-            moduleTitle.textContent = titles[viewKey];
-          }
-
-          if (viewKey === "draw") {
-            resizeDrawingCanvas();
-          } else if (viewKey === "flappy") {
-            initFlappyGame();
-          } else if (viewKey === "fruitninja") {
-            initFruitNinjaGame();
-          } else if (viewKey === "hockey") {
-            initAirHockeyGame();
-          }
+          switchView(item.dataset.view);
         });
       });
 
@@ -1706,8 +1716,13 @@
       }
 
       window.addEventListener("keydown", (e) => {
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+
         if (e.key === "f" || e.key === "F") {
           toggleFullScreen();
+        } else if (e.key === "g" || e.key === "G") {
+          switchView("flappy");
+          showToast("🎮 Aba Flip Bird / Flappy Ativada! [Atalho G]");
         }
       });
 

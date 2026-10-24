@@ -4,13 +4,14 @@
 AI Virtual Mouse & Totem Digital SENAI - Unified Launcher
 =========================================================
 Ponto de entrada unificado em Python puro para inicializar o sistema touchless,
-laboratório de testes web com jogos ou painel institucional do totem.
+laboratório de testes web com jogos, jogo Flappy Mouse (Pygame) ou painel do totem.
 
 Uso:
-  py main.py                 -> Inicia Mouse Touchless + Área de Testes com Jogos (Recomendado)
+  py main.py                 -> Inicia Mouse Touchless + Área de Testes Web + Jogo Flappy Mouse
+  py main.py --flappy        -> Executa o Jogo Desktop Flappy Mouse com Touchless
   py main.py --totem         -> Abre o Totem Digital oficial no navegador
   py main.py --teste         -> Abre apenas o Laboratório de Testes Web
-  py main.py --mouse-only    -> Executa apenas o Mouse Touchless (sem abrir navegador)
+  py main.py --mouse-only    -> Executa apenas o Mouse Touchless (sem abrir navegador/jogos)
   py main.py --ironman       -> Executa o modo HUD Jarvis / Homem de Ferro
   py main.py --gui           -> Executa a interface desktop CustomTkinter
 """
@@ -19,10 +20,12 @@ import sys
 import os
 import argparse
 import webbrowser
+import subprocess
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOTEM_INDEX = os.path.join(ROOT_DIR, "totem-senai", "index.html")
 TESTE_INDEX = os.path.join(ROOT_DIR, "totem-senai", "teste.html")
+FLAPPY_SCRIPT = os.path.join(ROOT_DIR, "flappy_mouse.py")
 
 
 def open_in_browser(file_path: str, title: str):
@@ -45,6 +48,7 @@ def print_banner():
     print(" - Arrastar & Soltar: Segure a pinça fechada (> 0.3s)")
     print(" - Clique Direito: Pinça entre polegar + dedo médio")
     print(" - Rolagem (Scroll): Levante indicador + médio juntos")
+    print(" - Atalho Web: Pressione 'G' no navegador para ir à aba do jogo")
     print(" - Sair: Pressione 'q' na janela de vídeo")
     print("=" * 64)
 
@@ -63,6 +67,11 @@ def main():
         "--teste", "-l",
         action="store_true",
         help="Abre apenas a Área de Testes Web (com Flip Bird, Fruit Ninja e Hockey)."
+    )
+    parser.add_argument(
+        "--flappy", "-f",
+        action="store_true",
+        help="Executa o jogo desktop Flappy Mouse (Pygame)."
     )
     parser.add_argument(
         "--mouse-only", "-m",
@@ -95,6 +104,16 @@ def main():
         open_in_browser(TESTE_INDEX, "Área de Testes Web SENAI")
         return
 
+    # Opção: Jogo Flappy Mouse Standalone
+    if args.flappy:
+        print_banner()
+        if os.path.exists(FLAPPY_SCRIPT):
+            print("\n[Inicializando] Jogo Flappy Mouse (Pygame)...")
+            subprocess.call([sys.executable, FLAPPY_SCRIPT])
+        else:
+            print(f"[Erro] Arquivo não encontrado: {FLAPPY_SCRIPT}")
+        return
+
     # Opção: Modo Jarvis / Ironman
     if args.ironman:
         print_banner()
@@ -119,13 +138,31 @@ def main():
         run_touchless()
         return
 
-    # Modo Padrão: Touchless + Área de Testes Web com Jogos
+    # Modo Padrão: Touchless + Área de Testes Web com Jogos + Flappy Mouse Pygame
     print_banner()
-    print("\n[1/2] Abrindo Área de Testes Web com Jogos no Navegador...")
+    print("\n[1/3] Abrindo Área de Testes Web com Jogos no Navegador...")
+    print("      (Dica: Pressione 'G' no navegador para ir direto à aba do jogo)")
     open_in_browser(TESTE_INDEX, "Área de Testes Web SENAI")
-    print("\n[2/2] Inicializando Sistema Touchless Pro (60 FPS)...")
+
+    # Inicia o jogo flappy_mouse.py em segundo plano
+    flappy_proc = None
+    if os.path.exists(FLAPPY_SCRIPT):
+        print("\n[2/3] Executando Jogo Flappy Mouse (Pygame)...")
+        try:
+            flappy_proc = subprocess.Popen([sys.executable, FLAPPY_SCRIPT])
+        except Exception as e:
+            print(f"[Aviso] Não foi possível iniciar flappy_mouse.py: {e}")
+
+    print("\n[3/3] Inicializando Sistema Touchless Pro (60 FPS)...")
     from mac_touchless_pro import main as run_touchless
-    run_touchless()
+    try:
+        run_touchless()
+    finally:
+        if flappy_proc and flappy_proc.poll() is None:
+            try:
+                flappy_proc.terminate()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
