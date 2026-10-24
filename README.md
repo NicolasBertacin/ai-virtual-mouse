@@ -34,7 +34,7 @@ python3 main.py
 ```bash
 python main.py --flappy      # Executa o jogo desktop Flappy Mouse (Pygame)
 python main.py --totem       # Abre o Totem Digital SENAI no navegador
-python main.py --teste       # Abre o Laboratório de Testes Web com os jogos
+python main.py --teste       # Abre a Área de Calibração e Testes Web
 python main.py --mouse-only  # Executa apenas o motor touchless (sem navegador)
 python main.py --ironman     # Executa a versão com HUD futurista Jarvis Ironman
 python main.py --gui         # Executa a interface desktop Studio CustomTkinter
@@ -60,12 +60,9 @@ python main.py --gui         # Executa a interface desktop Studio CustomTkinter
 - Taxa de quadros fluida (25-40+ FPS) utilizando compressão MJPG 640x480.
 - Suporte a modo Kiosk em tela cheia para totens interativos.
 
-### 🎮 Laboratório de Testes Web & Jogos Touchless
-- Contém 4 módulos interativos de calibração (Alcance de Tela, Arraste de Peças, Desenho Livre, Teste de Reflexo).
-- Inclui 3 Jogos Touchless:
-  - **Flip Bird**: Pilote o Drone Tecnológico SENAI no ar.
-  - **Fruit Ninja**: Fatie frutas no ar com a lâmina laser e desvie de bombas.
-  - **Air Hockey 1x1**: Disputa esportiva ágil contra a inteligência artificial.
+### 🎮 Jogo Flappy Bird 100% Python & Área de Calibração
+- **Flappy Bird Touchless (`flappy_mouse.py`)**: Jogo interativo desenvolvido em Pygame puro. O pássaro segue os movimentos da mão no ar com física suave, suporte a tela cheia (`F`), reinício por pinça ou tecla espaço e pontuação recorde.
+- **Área de Calibração Web**: 4 módulos interativos para testar e calibrar a precisão e o alcance do mouse virtual (Alcance de Tela Inteira, Arraste de Peças, Desenho Livre e Teste de Reflexo).
 
 ### 🎨 Visual Moderno & Tema SENAI
 - Fundo contínuo com 10 ondas senoidais vermelhas a 60 FPS no padrão institucional do SENAI.

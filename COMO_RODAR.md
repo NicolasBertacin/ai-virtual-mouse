@@ -27,10 +27,10 @@ py main.py
 python3 main.py
 ```
 
-> **O que esse comando faz?**
-> 1. Abre automaticamente a **Área de Testes Web com Jogos** (Flip Bird, Fruit Ninja e Air Hockey) no navegador padrão *(Dica: Pressione **`G`** no navegador para ir direto à aba do jogo)*.
-> 2. Inicia o jogo desktop **Flappy Mouse** (`flappy_mouse.py`) em Pygame.
-> 3. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo controlar todo o monitor com a mão no ar.
+> **O que esse comando faz? (100% Python)**
+> 1. Inicia o jogo desktop **Flappy Bird** (`flappy_mouse.py`) em Pygame puro.
+> 2. Inicializa o motor do **Mouse Virtual Touchless a 60 FPS**, detectando automaticamente sua webcam USB e permitindo pilotar o pássaro e controlar o computador apenas movendo a mão no ar.
+> 3. Funciona com altíssima performance, sem sobrecarga de navegador web.
 
 ---
 
@@ -204,11 +204,11 @@ O arquivo [`main.py`](file:///c:/Users/Aluno/Desktop/ai-virtual-mouse/main.py) �
 
 | Comando | Descrição |
 | :--- | :--- |
-| `python main.py` | **Padrão**: Inicia Mouse 60 FPS + Área de Testes Web + Jogo Flappy Mouse Pygame |
-| `python main.py --flappy` (ou `-f`) | Executa o jogo desktop Flappy Mouse (Pygame) com mouse touchless |
+| `python main.py` | **Padrão (100% Python)**: Inicia Mouse Touchless 60 FPS + Jogo Flappy Bird Pygame |
+| `python main.py --flappy` (ou `-f`) | Executa apenas o jogo desktop Flappy Bird (Pygame) |
+| `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem abrir jogo) |
+| `python main.py --teste` (ou `--web`) | Abre a Área de Testes e Calibração no navegador |
 | `python main.py --totem` (ou `-t`) | Abre o Totem Institucional oficial do SENAI no navegador |
-| `python main.py --teste` (ou `-l`) | Abre apenas a Área de Testes Web com os jogos (sem ligar a câmera) |
-| `python main.py --mouse-only` (ou `-m`) | Inicia apenas o motor do mouse virtual touchless (sem abrir navegador) |
 | `python main.py --ironman` (ou `-i`) | Inicia a versão futurista Jarvis com HUD holográfico do Homem de Ferro |
 | `python main.py --gui` (ou `-g`) | Inicia a interface gráfica desktop desenvolvida em CustomTkinter |
 
