@@ -788,109 +788,6 @@
       margin-left: 6px;
     }
 
-    /* Teclado Virtual */
-    .keyboard-workspace {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 10px;
-      overflow-y: auto;
-    }
-
-    .keyboard-display-box {
-      width: 100%;
-      height: 90px;
-      background: #FFFFFF;
-      border: 2px solid var(--border-card);
-      border-radius: 14px;
-      padding: 16px 20px;
-      font-family: var(--font-display);
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: var(--text-title);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
-    }
-
-    .keyboard-text-content {
-      flex: 1;
-      white-space: nowrap;
-      overflow-x: auto;
-      letter-spacing: 0.02em;
-    }
-
-    .keyboard-cursor-blink {
-      display: inline-block;
-      width: 3px;
-      height: 1.2em;
-      background: var(--senai-red);
-      vertical-align: middle;
-      animation: blinkCursor 0.8s infinite;
-      margin-left: 3px;
-    }
-
-    @keyframes blinkCursor {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .keyboard-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .keyboard-row {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .key-btn {
-      flex: 1;
-      height: 52px;
-      background: #FFFFFF;
-      border: 1px solid var(--border-card);
-      border-radius: 10px;
-      font-family: var(--font-display);
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text-title);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
-      user-select: none;
-    }
-
-    .key-btn:hover {
-      background: var(--senai-red-subtle);
-      border-color: var(--senai-red-border);
-      color: var(--senai-red);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(227, 6, 19, 0.12);
-    }
-
-    .key-btn:active {
-      transform: translateY(1px);
-      background: var(--senai-red);
-      color: #FFFFFF;
-    }
-
-    .key-btn.key-wide { flex: 1.6; }
-    .key-btn.key-space { flex: 4.5; }
-    .key-btn.key-action { background: var(--subtle-card); color: var(--text-body); }
-
     /* Teste de Reflexo */
     .reaction-arena {
       flex: 1;
@@ -1073,9 +970,6 @@
         </button>
         <button class="nav-item" data-view="draw">
           <span>Desenho Livre</span>
-        </button>
-        <button class="nav-item" data-view="keyboard">
-          <span>Teclado Virtual</span>
         </button>
         <button class="nav-item" data-view="reaction">
           <span>Teste de Reflexo</span>
@@ -1296,80 +1190,6 @@
         </div>
       </div>
 
-
-      <!-- ==================== MÓDULO 4: TECLADO VIRTUAL ==================== -->
-      <div class="view-panel" id="viewKeyboard">
-        <div class="panel-header-strip">
-          <span class="panel-header-text">
-            Aponte o cursor sobre as teclas e faça a pinça para digitar textos sem tocar no teclado físico.
-          </span>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-secondary" id="btnCopyKeyboard">Copiar Texto</button>
-            <button class="btn-secondary" id="btnClearKeyboard">Limpar</button>
-          </div>
-        </div>
-
-        <div class="keyboard-workspace">
-          <div class="keyboard-display-box">
-            <div class="keyboard-text-content" id="keyboardDisplay">SENAI TECNOLOGIA E INOVAÇÃO<span class="keyboard-cursor-blink"></span></div>
-          </div>
-
-          <div class="keyboard-grid" id="virtualKeyboard">
-            <div class="keyboard-row">
-              <button class="key-btn" data-key="1">1</button>
-              <button class="key-btn" data-key="2">2</button>
-              <button class="key-btn" data-key="3">3</button>
-              <button class="key-btn" data-key="4">4</button>
-              <button class="key-btn" data-key="5">5</button>
-              <button class="key-btn" data-key="6">6</button>
-              <button class="key-btn" data-key="7">7</button>
-              <button class="key-btn" data-key="8">8</button>
-              <button class="key-btn" data-key="9">9</button>
-              <button class="key-btn" data-key="0">0</button>
-              <button class="key-btn key-wide key-action" data-key="BACKSPACE">⌫</button>
-            </div>
-            <div class="keyboard-row">
-              <button class="key-btn" data-key="Q">Q</button>
-              <button class="key-btn" data-key="W">W</button>
-              <button class="key-btn" data-key="E">E</button>
-              <button class="key-btn" data-key="R">R</button>
-              <button class="key-btn" data-key="T">T</button>
-              <button class="key-btn" data-key="Y">Y</button>
-              <button class="key-btn" data-key="U">U</button>
-              <button class="key-btn" data-key="I">I</button>
-              <button class="key-btn" data-key="O">O</button>
-              <button class="key-btn" data-key="P">P</button>
-            </div>
-            <div class="keyboard-row">
-              <button class="key-btn" data-key="A">A</button>
-              <button class="key-btn" data-key="S">S</button>
-              <button class="key-btn" data-key="D">D</button>
-              <button class="key-btn" data-key="F">F</button>
-              <button class="key-btn" data-key="G">G</button>
-              <button class="key-btn" data-key="H">H</button>
-              <button class="key-btn" data-key="J">J</button>
-              <button class="key-btn" data-key="K">K</button>
-              <button class="key-btn" data-key="L">L</button>
-              <button class="key-btn" data-key="Ç">Ç</button>
-            </div>
-            <div class="keyboard-row">
-              <button class="key-btn key-wide key-action" id="btnCapsLock" data-key="CAPS">CAPS</button>
-              <button class="key-btn" data-key="Z">Z</button>
-              <button class="key-btn" data-key="X">X</button>
-              <button class="key-btn" data-key="C">C</button>
-              <button class="key-btn" data-key="V">V</button>
-              <button class="key-btn" data-key="B">B</button>
-              <button class="key-btn" data-key="N">N</button>
-              <button class="key-btn" data-key="M">M</button>
-              <button class="key-btn" data-key=".">.</button>
-              <button class="key-btn key-wide key-action" data-key="ENTER">↵ ENTER</button>
-            </div>
-            <div class="keyboard-row">
-              <button class="key-btn key-space" data-key="SPACE">BARRA DE ESPAÇO</button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- ==================== MÓDULO 5: TESTE DE REFLEXO ==================== -->
       <div class="view-panel" id="viewReaction">
@@ -1603,7 +1423,6 @@
         range: document.getElementById("viewRange"),
         drag: document.getElementById("viewDrag"),
         draw: document.getElementById("viewDraw"),
-        keyboard: document.getElementById("viewKeyboard"),
         reaction: document.getElementById("viewReaction"),
         flappy: document.getElementById("viewFlappy"),
         fruitninja: document.getElementById("viewFruitNinja"),
@@ -1615,7 +1434,6 @@
         range: "TESTE DE ALCANCE DA TELA INTEIRA",
         drag: "ARRASTE DE PEÇAS INDUSTRIAIS (DRAG & DROP)",
         draw: "DESENHO LIVRE & PRECISÃO DE CURSOR",
-        keyboard: "TECLADO VIRTUAL TOUCHLESS",
         reaction: "TESTE DE REFLEXO E VELOCIDADE DE CLIQUE",
         flappy: "JOGO FLIP BIRD (SENAI EDITION)",
         fruitninja: "JOGO FRUIT NINJA (CORTE GESTUAL)",
@@ -1953,54 +1771,6 @@
       }
 
       // ===================================================================
-      // 4. MÓDULO TECLADO VIRTUAL TOUCHLESS
-      // ===================================================================
-      const keyboardDisplay = document.getElementById("keyboardDisplay");
-      const keys = document.querySelectorAll(".key-btn");
-      let currentKeyboardText = "SENAI TECNOLOGIA E INOVAÇÃO";
-      let isCaps = true;
-
-      function updateKeyboardDisplay() {
-        keyboardDisplay.innerHTML = (currentKeyboardText || "") + '<span class="keyboard-cursor-blink"></span>';
-      }
-
-      keys.forEach(k => {
-        k.addEventListener("click", () => {
-          playTickSound();
-          const keyVal = k.dataset.key;
-          if (keyVal === "BACKSPACE") {
-            currentKeyboardText = currentKeyboardText.slice(0, -1);
-          } else if (keyVal === "SPACE") {
-            currentKeyboardText += " ";
-          } else if (keyVal === "ENTER") {
-            showToast("Texto confirmado: " + currentKeyboardText);
-            playSuccessChime();
-          } else if (keyVal === "CAPS") {
-            isCaps = !isCaps;
-            k.style.background = isCaps ? "var(--senai-red)" : "";
-            k.style.color = isCaps ? "#FFFFFF" : "";
-          } else if (keyVal) {
-            currentKeyboardText += isCaps ? keyVal.toUpperCase() : keyVal.toLowerCase();
-          }
-          updateKeyboardDisplay();
-        });
-      });
-
-      document.getElementById("btnClearKeyboard").addEventListener("click", () => {
-        currentKeyboardText = "";
-        updateKeyboardDisplay();
-        showToast("Texto limpo!");
-      });
-
-      document.getElementById("btnCopyKeyboard").addEventListener("click", () => {
-        navigator.clipboard.writeText(currentKeyboardText).then(() => {
-          showToast("Texto copiado para a área de transferência!");
-          playSuccessChime();
-        }).catch(() => {
-          showToast("Texto copiado!");
-        });
-      });
-
       // ===================================================================
       // 5. MÓDULO TESTE DE REFLEXO & VELOCIDADE DE CLIQUE
       // ===================================================================

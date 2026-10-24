@@ -60,7 +60,7 @@ python main.py --gui         # Executa a interface desktop Studio CustomTkinter
 - Suporte a modo Kiosk em tela cheia para totens interativos.
 
 ### 🎮 Laboratório de Testes Web & Jogos Touchless
-- Contém 5 módulos interativos de calibração (Alcance de Tela, Arraste de Peças, Desenho Livre, Teclado Virtual, Teste de Reflexo).
+- Contém 4 módulos interativos de calibração (Alcance de Tela, Arraste de Peças, Desenho Livre, Teste de Reflexo).
 - Inclui 3 Jogos Touchless:
   - **Flip Bird**: Pilote o Drone Tecnológico SENAI no ar.
   - **Fruit Ninja**: Fatie frutas no ar com a lâmina laser e desvie de bombas.
