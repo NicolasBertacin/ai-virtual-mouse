@@ -8,7 +8,7 @@ O pássaro segue a mão do usuário suavemente pelo ar.
 Comandos:
   - Mover: Aponte com o indicador (o pássaro segue o cursor)
   - Reiniciar: Clique com o mouse (pinça no ar) ou pressione ESPAÇO
-  - Tela Cheia: Pressione 'F' ou 'F11'
+  - Alternar Janela / Tela Cheia: Pressione 'F' ou 'F11'
   - Sair: Pressione 'Q' ou 'ESC'
 ====================================================================
 """
@@ -36,13 +36,18 @@ COR_CANO_TOPO      = (227, 6, 19)      # Detalhe SENAI Vermelho
 COR_CINZA_CLARO    = (240, 244, 248)
 COR_SOMBRA         = (30, 41, 59, 160)
 
-# Resolução inicial da janela
-LARGURA_PADRAO = 800
-ALTURA_PADRAO = 600
+# Resolução padrão
+LARGURA_PADRAO = 1024
+ALTURA_PADRAO = 720
 
-# Criar tela
-is_fullscreen = False
-tela = pygame.display.set_mode((LARGURA_PADRAO, ALTURA_PADRAO), pygame.RESIZABLE)
+# Inicializa DIRETAMENTE EM TELA CHEIA (Fullscreen)
+is_fullscreen = True
+try:
+    tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+except Exception:
+    tela = pygame.display.set_mode((LARGURA_PADRAO, ALTURA_PADRAO), pygame.RESIZABLE)
+    is_fullscreen = False
+
 pygame.display.set_caption("SENAI Flappy Bird - Controle Touchless")
 
 # Ícone da janela (se disponível)
@@ -59,28 +64,28 @@ relogio = pygame.time.Clock()
 # Fontes seguras do sistema
 def obter_fontes():
     try:
-        f_grande = pygame.font.SysFont("Arial", 42, bold=True)
-        f_media = pygame.font.SysFont("Arial", 26, bold=True)
+        f_grande = pygame.font.SysFont("Arial", 46, bold=True)
+        f_media = pygame.font.SysFont("Arial", 28, bold=True)
         f_pequena = pygame.font.SysFont("Arial", 18)
-        f_hud = pygame.font.SysFont("Arial", 20, bold=True)
+        f_hud = pygame.font.SysFont("Arial", 22, bold=True)
     except Exception:
-        f_grande = pygame.font.Font(None, 48)
-        f_media = pygame.font.Font(None, 30)
-        f_pequena = pygame.font.Font(None, 22)
+        f_grande = pygame.font.Font(None, 52)
+        f_media = pygame.font.Font(None, 32)
+        f_pequena = pygame.font.Font(None, 20)
         f_hud = pygame.font.Font(None, 24)
     return f_grande, f_media, f_pequena, f_hud
 
 fonte_grande, fonte_media, fonte_pequena, fonte_hud = obter_fontes()
 
 # Parâmetros da Física do Jogo
-LARGURA_BARREIRA = 84
-ESPACO_BARREIRA = 195
-VELOCIDADE_CANO = 4.0
+LARGURA_BARREIRA = 88
+ESPACO_PADRAO = 210
+VELOCIDADE_CANO = 4.2
 VELOCIDADE_SEGUIMENTO = 0.14
-RAIO_PASSARO = 18
+RAIO_PASSARO = 20
 
 # Estado Global do Jogo
-passaro_x = 160.0
+passaro_x = 180.0
 passaro_y = ALTURA_PADRAO / 2
 asa_fase = 0.0
 
@@ -90,32 +95,36 @@ recorde = 0
 game_over = False
 
 def criar_barreira(pos_x, largura_tela, altura_tela):
-    margem = 70
-    topo = random.randint(margem, max(margem + 10, int(altura_tela - ESPACO_BARREIRA - margem)))
+    margem = 80
+    espaco = max(200, int(altura_tela * 0.26))
+    topo = random.randint(margem, max(margem + 10, int(altura_tela - espaco - margem)))
     return {
         "x": float(pos_x),
         "topo": topo,
+        "espaco": espaco,
         "passou": False
     }
 
 def reiniciar():
     global passaro_x, passaro_y, barreiras, pontuacao, game_over
     w, h = tela.get_size()
-    passaro_x = min(180.0, w * 0.22)
+    passaro_x = min(220.0, w * 0.22)
     passaro_y = h / 2
+    dist_barreira = max(360, int(w * 0.28))
     barreiras = [
-        criar_barreira(w + 120, w, h),
-        criar_barreira(w + 120 + 380, w, h)
+        criar_barreira(w + 100, w, h),
+        criar_barreira(w + 100 + dist_barreira, w, h)
     ]
     pontuacao = 0
     game_over = False
 
 # Nuvens decorativas de fundo
 nuvens = [
-    {"x": 120, "y": 80, "vel": 0.4, "t": 24},
-    {"x": 420, "y": 140, "vel": 0.3, "t": 32},
-    {"x": 680, "y": 95, "vel": 0.5, "t": 20},
-    {"x": 950, "y": 160, "vel": 0.35, "t": 28}
+    {"x": 120, "y": 80, "vel": 0.4, "t": 28},
+    {"x": 450, "y": 140, "vel": 0.3, "t": 36},
+    {"x": 800, "y": 95, "vel": 0.5, "t": 24},
+    {"x": 1150, "y": 160, "vel": 0.35, "t": 32},
+    {"x": 1500, "y": 110, "vel": 0.45, "t": 30}
 ]
 
 # Inicializa jogo
@@ -169,7 +178,7 @@ while executando:
 
         # Limitar dentro dos limites da tela com margem de segurança
         passaro_y = max(RAIO_PASSARO + 10, min(altura_atual - RAIO_PASSARO - 10, passaro_y))
-        passaro_x = min(180.0, largura_atual * 0.22)
+        passaro_x = min(220.0, largura_atual * 0.22)
 
         # Bater de asas animado
         velocidade_vertical = alvo_y - passaro_y
@@ -185,8 +194,9 @@ while executando:
                 barreira["passou"] = True
 
         # Gerar novas barreiras à frente
-        if len(barreiras) == 0 or barreiras[-1]["x"] < largura_atual - 320:
-            pos_nova = largura_atual + 50 if len(barreiras) == 0 else barreiras[-1]["x"] + 360
+        dist_prox = max(360, int(largura_atual * 0.28))
+        if len(barreiras) == 0 or barreiras[-1]["x"] < largura_atual - 300:
+            pos_nova = largura_atual + 50 if len(barreiras) == 0 else barreiras[-1]["x"] + dist_prox
             barreiras.append(criar_barreira(pos_nova, largura_atual, altura_atual))
 
         # Descartar barreiras que saíram da tela
@@ -204,7 +214,8 @@ while executando:
         for barreira in barreiras:
             bx = int(barreira["x"])
             topo = barreira["topo"]
-            base = topo + ESPACO_BARREIRA
+            espaco = barreira.get("espaco", ESPACO_PADRAO)
+            base = topo + espaco
 
             rect_sup = pygame.Rect(bx, 0, LARGURA_BARREIRA, topo)
             rect_inf = pygame.Rect(bx, base, LARGURA_BARREIRA, altura_atual - base)
@@ -226,35 +237,32 @@ while executando:
     # 2. Nuvens em Movimento Suave
     for n in nuvens:
         n["x"] -= n["vel"]
-        if n["x"] < -100:
-            n["x"] = largura_atual + 60
-            n["y"] = random.randint(40, max(50, altura_atual // 3))
+        if n["x"] < -120:
+            n["x"] = largura_atual + 80
+            n["y"] = random.randint(50, max(60, altura_atual // 3))
         # Desenho composto de nuvem
         nx, ny, nt = int(n["x"]), int(n["y"]), n["t"]
-        pygame.draw.circle(tela, (255, 255, 255, 200), (nx, ny), nt)
-        pygame.draw.circle(tela, (255, 255, 255, 200), (nx + int(nt * 0.7), ny - int(nt * 0.2)), int(nt * 0.8))
-        pygame.draw.circle(tela, (255, 255, 255, 200), (nx - int(nt * 0.7), ny + int(nt * 0.1)), int(nt * 0.7))
+        pygame.draw.circle(tela, (255, 255, 255, 210), (nx, ny), nt)
+        pygame.draw.circle(tela, (255, 255, 255, 210), (nx + int(nt * 0.7), ny - int(nt * 0.2)), int(nt * 0.8))
+        pygame.draw.circle(tela, (255, 255, 255, 210), (nx - int(nt * 0.7), ny + int(nt * 0.1)), int(nt * 0.7))
 
     # 3. Desenho das Barreiras (Estilo Industrial SENAI)
     for barreira in barreiras:
         bx = int(barreira["x"])
         topo = barreira["topo"]
-        base = topo + ESPACO_BARREIRA
+        espaco = barreira.get("espaco", ESPACO_PADRAO)
+        base = topo + espaco
 
         # Cano Superior
-        # Corpo
         pygame.draw.rect(tela, COR_CANO_CORPO, (bx, 0, LARGURA_BARREIRA, topo))
         pygame.draw.rect(tela, COR_CANO_BORDA, (bx, 0, LARGURA_BARREIRA, topo), 3)
-        # Detalhe do bocal superior com friso vermelho SENAI
         pygame.draw.rect(tela, COR_CANO_CORPO, (bx - 6, topo - 26, LARGURA_BARREIRA + 12, 26))
         pygame.draw.rect(tela, COR_CANO_BORDA, (bx - 6, topo - 26, LARGURA_BARREIRA + 12, 26), 3)
         pygame.draw.rect(tela, COR_SENAI_VERMELHO, (bx - 6, topo - 6, LARGURA_BARREIRA + 12, 6))
 
         # Cano Inferior
-        # Corpo
         pygame.draw.rect(tela, COR_CANO_CORPO, (bx, base, LARGURA_BARREIRA, altura_atual - base))
         pygame.draw.rect(tela, COR_CANO_BORDA, (bx, base, LARGURA_BARREIRA, altura_atual - base), 3)
-        # Detalhe do bocal inferior com friso vermelho SENAI
         pygame.draw.rect(tela, COR_CANO_CORPO, (bx - 6, base, LARGURA_BARREIRA + 12, 26))
         pygame.draw.rect(tela, COR_CANO_BORDA, (bx - 6, base, LARGURA_BARREIRA + 12, 26), 3)
         pygame.draw.rect(tela, COR_SENAI_VERMELHO, (bx - 6, base, LARGURA_BARREIRA + 12, 6))
@@ -273,7 +281,7 @@ while executando:
 
     # Asa Batendo (Oscilação senoidal)
     asa_offset_y = math.sin(asa_fase) * 6
-    asa_rect = pygame.Rect(px - 14, int(py - 4 + asa_offset_y), 16, 12)
+    asa_rect = pygame.Rect(px - 14, int(py - 4 + asa_offset_y), 18, 13)
     pygame.draw.ellipse(tela, COR_BRANCO, asa_rect)
     pygame.draw.ellipse(tela, COR_SENAI_VERMELHO, asa_rect, 2)
 
@@ -283,23 +291,23 @@ while executando:
     pygame.draw.circle(tela, COR_BRANCO, (px + 10, py - 7), 1)
 
     # Bico Laranja
-    bico_pts = [(px + 14, py - 3), (px + 26, py + 2), (px + 14, py + 7)]
+    bico_pts = [(px + 15, py - 3), (px + 28, py + 2), (px + 15, py + 7)]
     pygame.draw.polygon(tela, COR_LARANJA, bico_pts)
     pygame.draw.polygon(tela, COR_PRETO, bico_pts, 2)
 
     # 5. Barra Superior HUD & SENAI Branding
-    hud_bg = pygame.Surface((largura_atual, 56), pygame.SRCALPHA)
-    hud_bg.fill((15, 23, 42, 190))
+    hud_bg = pygame.Surface((largura_atual, 58), pygame.SRCALPHA)
+    hud_bg.fill((15, 23, 42, 210))
     tela.blit(hud_bg, (0, 0))
 
     # Friso vermelho SENAI na base do HUD
-    pygame.draw.rect(tela, COR_SENAI_VERMELHO, (0, 53, largura_atual, 3))
+    pygame.draw.rect(tela, COR_SENAI_VERMELHO, (0, 55, largura_atual, 3))
 
     # Logo / Texto SENAI
     txt_logo = fonte_hud.render("SENAI", True, COR_SENAI_VERMELHO)
     txt_sub = fonte_pequena.render("FLAPPY BIRD TOUCHLESS", True, COR_BRANCO)
-    tela.blit(txt_logo, (20, 15))
-    tela.blit(txt_sub, (90, 18))
+    tela.blit(txt_logo, (24, 16))
+    tela.blit(txt_sub, (98, 19))
 
     # Pontuação no Centro com Sombra
     txt_score_sombra = fonte_grande.render(str(pontuacao), True, (15, 23, 42))
@@ -313,8 +321,8 @@ while executando:
     tela.blit(txt_rec, (largura_atual - txt_rec.get_width() - 24, 17))
 
     # 6. Dica no Rodapé
-    txt_dica = fonte_pequena.render("Mova a mão no ar para pilotar  |  [F] Tela Cheia  |  [Q] Sair", True, (245, 245, 245))
-    sombra_dica = fonte_pequena.render("Mova a mão no ar para pilotar  |  [F] Tela Cheia  |  [Q] Sair", True, (20, 20, 20))
+    txt_dica = fonte_pequena.render("Mova a mão no ar para pilotar  |  [F] Alternar Tela Cheia  |  [Q] Sair", True, (245, 245, 245))
+    sombra_dica = fonte_pequena.render("Mova a mão no ar para pilotar  |  [F] Alternar Tela Cheia  |  [Q] Sair", True, (20, 20, 20))
     dx = largura_atual // 2 - txt_dica.get_width() // 2
     tela.blit(sombra_dica, (dx + 1, altura_atual - 27))
     tela.blit(txt_dica, (dx, altura_atual - 28))

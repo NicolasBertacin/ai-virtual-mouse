@@ -8,7 +8,7 @@ pela tela. Desvie das bombas vermelhas!
 
 Comandos:
   - Lâmina Laser: Mova a mão no ar com velocidade para cortar
-  - Tela Cheia: Pressione 'F' ou 'F11'
+  - Alternar Janela / Tela Cheia: Pressione 'F' ou 'F11'
   - Reiniciar: Clique com o mouse (pinça no ar) ou pressione ESPAÇO
   - Sair: Pressione 'Q' ou 'ESC'
 ====================================================================
@@ -29,25 +29,37 @@ try:
 except Exception:
     AUDIO_DISPONIVEL = False
 
-# Resolução inicial
+# Resolução padrão
 LARGURA_PADRAO = 1024
 ALTURA_PADRAO = 720
-tela = pygame.display.set_mode((LARGURA_PADRAO, ALTURA_PADRAO), pygame.RESIZABLE)
+
+# INICIALIZA DIRETAMENTE EM TELA CHEIA (Fullscreen)
+is_fullscreen = True
+try:
+    tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+except Exception:
+    tela = pygame.display.set_mode((LARGURA_PADRAO, ALTURA_PADRAO), pygame.RESIZABLE)
+    is_fullscreen = False
+
 pygame.display.set_caption("SENAI Fruit Ninja - Corte Touchless")
 
 relogio = pygame.time.Clock()
 
-# Cores Principais & SENAI
+# Cores Principais (Tema Claro com Identidade SENAI)
 COR_SENAI_VERMELHO = (227, 6, 19)
 COR_SENAI_AZUL     = (0, 71, 143)
-COR_FUNDO_MADEIRA  = (32, 23, 18)
-COR_FUNDO_TABUA    = (48, 35, 27)
+
+# Fundo Claro e Moderno (Tábua de corte clara estilo Dojo / Sala Tecnológica)
+COR_FUNDO_CLARO    = (246, 244, 238)
+COR_FUNDO_TABUA    = (226, 222, 212)
+COR_SOMBRA_FRUTA   = (190, 184, 172)
+
 COR_BRANCO         = (255, 255, 255)
 COR_PRETO          = (15, 17, 22)
-COR_OURO           = (255, 215, 0)
-COR_LASER_EXTERNO  = (0, 225, 255)
+COR_OURO           = (255, 195, 0)
+COR_LASER_EXTERNO  = (0, 185, 255)
 COR_LASER_INTERNO  = (255, 255, 255)
-COR_LASER_SENAI    = (255, 45, 60)
+COR_LASER_SENAI    = (227, 6, 19)
 
 # Fontes seguras do sistema
 def obter_fontes():
@@ -74,21 +86,18 @@ if AUDIO_DISPONIVEL:
         import numpy as np
 
         def criar_som_corte():
-            # Whoosh de alta frequência descendo rápido
             dur = 0.12
             sr = 44100
             t = np.linspace(0, dur, int(sr * dur), False)
             freq = np.linspace(1200, 300, len(t))
             env = np.sin(np.pi * t / dur) ** 2
             wave = np.sin(2 * np.pi * freq * t) * env * 0.4
-            # Adiciona ruído branco suave de fricção
             noise = (np.random.rand(len(t)) * 2 - 1) * 0.15 * env
             final = wave + noise
             stereo = np.ascontiguousarray(np.vstack((final, final)).T * 32767, dtype=np.int16)
             return pygame.sndarray.make_sound(stereo)
 
         def criar_som_splat():
-            # Som de polpa/líquido estalando
             dur = 0.18
             sr = 44100
             t = np.linspace(0, dur, int(sr * dur), False)
@@ -101,7 +110,6 @@ if AUDIO_DISPONIVEL:
             return pygame.sndarray.make_sound(stereo)
 
         def criar_som_explosao():
-            # Estrondo de bomba
             dur = 0.55
             sr = 44100
             t = np.linspace(0, dur, int(sr * dur), False)
@@ -113,7 +121,6 @@ if AUDIO_DISPONIVEL:
             return pygame.sndarray.make_sound(stereo)
 
         def criar_som_combo():
-            # Acorde brilhante ascendente
             dur = 0.35
             sr = 44100
             t = np.linspace(0, dur, int(sr * dur), False)
@@ -145,56 +152,56 @@ def tocar_som(nome):
 TIPOS_FRUTA = {
     "melancia": {
         "nome": "Melancia",
-        "raio": 38,
-        "cor_casca": (38, 142, 60),
-        "cor_polpa": (225, 28, 48),
-        "cor_juice": (220, 20, 50),
+        "raio": 40,
+        "cor_casca": (32, 138, 55),
+        "cor_polpa": (228, 26, 46),
+        "cor_juice": (225, 20, 50),
         "pontos": 1
     },
     "laranja": {
         "nome": "Laranja",
-        "raio": 32,
-        "cor_casca": (255, 145, 0),
+        "raio": 34,
+        "cor_casca": (255, 140, 0),
         "cor_polpa": (255, 180, 40),
-        "cor_juice": (255, 150, 20),
+        "cor_juice": (255, 145, 20),
         "pontos": 1
     },
     "maca": {
         "nome": "Maçã",
-        "raio": 30,
-        "cor_casca": (210, 25, 35),
+        "raio": 32,
+        "cor_casca": (215, 22, 32),
         "cor_polpa": (245, 240, 210),
-        "cor_juice": (230, 40, 40),
+        "cor_juice": (228, 35, 35),
         "pontos": 1
     },
     "banana": {
         "nome": "Banana",
-        "raio": 28,
-        "cor_casca": (255, 225, 30),
+        "raio": 30,
+        "cor_casca": (255, 220, 25),
         "cor_polpa": (255, 248, 195),
-        "cor_juice": (250, 230, 70),
+        "cor_juice": (245, 215, 50),
         "pontos": 2
     },
     "coco": {
         "nome": "Coco",
-        "raio": 34,
+        "raio": 36,
         "cor_casca": (115, 68, 38),
         "cor_polpa": (245, 245, 250),
-        "cor_juice": (240, 240, 245),
+        "cor_juice": (140, 150, 160),
         "pontos": 3
     },
     "morango": {
         "nome": "Morango",
-        "raio": 25,
-        "cor_casca": (235, 20, 60),
-        "cor_polpa": (255, 120, 130),
-        "cor_juice": (235, 25, 55),
+        "raio": 26,
+        "cor_casca": (230, 18, 55),
+        "cor_polpa": (255, 115, 125),
+        "cor_juice": (230, 20, 50),
         "pontos": 2
     },
     "bomba": {
         "nome": "Bomba",
-        "raio": 32,
-        "cor_casca": (25, 28, 35),
+        "raio": 34,
+        "cor_casca": (24, 26, 32),
         "cor_polpa": (180, 20, 20),
         "cor_juice": (255, 80, 0),
         "pontos": 0
@@ -204,7 +211,7 @@ TIPOS_FRUTA = {
 # ==================== CLASSES DO JOGO ====================
 
 class Fruta:
-    """Representa uma fruta ou bomba lançada em arco gravitacional."""
+    """Representa uma fruta ou bomba lançada alto em arco gravitacional majestoso."""
     def __init__(self, tipo_nome, largura_tela, altura_tela):
         self.tipo_nome = tipo_nome
         self.tipo = TIPOS_FRUTA[tipo_nome]
@@ -212,61 +219,70 @@ class Fruta:
         self.is_bomba = (tipo_nome == "bomba")
 
         # Posição de lançamento na parte inferior
-        self.x = random.randint(int(largura_tela * 0.15), int(largura_tela * 0.85))
-        self.y = altura_tela + self.raio + random.randint(10, 40)
+        self.x = random.randint(int(largura_tela * 0.12), int(largura_tela * 0.88))
+        self.y = altura_tela + self.raio + random.randint(15, 45)
 
-        # Velocidades iniciais (Parábola suave)
-        margem_centro = (largura_tela / 2 - self.x) * 0.003
-        self.vx = random.uniform(-2.8, 2.8) + margem_centro
-        # Força proporcional à altura da tela
-        fator_altura = math.sqrt(altura_tela / 720.0)
-        self.vy = random.uniform(-16.0, -13.5) * fator_altura
+        # Gravidade suave para dar tempo de corte
+        self.gravidade = 0.26
+
+        # FÓRMULA DE VOO ALTO: O ápice do salto alcança entre 8% e 20% do topo da tela!
+        altura_alvo_topo = random.uniform(altura_tela * 0.08, altura_tela * 0.20)
+        distancia_subida = max(100.0, self.y - altura_alvo_topo)
+
+        # v^2 = 2 * g * h => vy = -sqrt(2 * g * h)
+        self.vy = -math.sqrt(2.0 * self.gravidade * distancia_subida)
+
+        # Velocidade horizontal com leve curvatura em direção ao centro
+        margem_centro = (largura_tela / 2 - self.x) * 0.002
+        self.vx = random.uniform(-2.2, 2.2) + margem_centro
 
         self.angulo = random.uniform(0, 360)
-        self.v_rotacao = random.uniform(-4.0, 4.0)
+        self.v_rotacao = random.uniform(-3.5, 3.5)
 
         self.cortada = False
         self.ativa = True
         self.perdeu_ponto = False
 
-    def atualizar(self, gravidade=0.38):
+    def atualizar(self):
         self.x += self.vx
         self.y += self.vy
-        self.vy += gravidade
+        self.vy += self.gravidade
         self.angulo += self.v_rotacao
 
     def desenhar(self, superficie):
         px, py = int(self.x), int(self.y)
 
         if self.is_bomba:
-            # Desenha a bomba negra metálica
-            pygame.draw.circle(superficie, (18, 20, 25), (px, py), self.raio)
-            pygame.draw.circle(superficie, (60, 65, 75), (px - 7, py - 7), self.raio // 3)
-            pygame.draw.circle(superficie, (227, 6, 19), (px, py), self.raio, 3)
+            # Sombra suave da bomba
+            pygame.draw.circle(superficie, COR_SOMBRA_FRUTA, (px + 4, py + 6), self.raio)
+
+            # Corpo esférico negro metálico
+            pygame.draw.circle(superficie, (26, 28, 35), (px, py), self.raio)
+            pygame.draw.circle(superficie, (75, 80, 92), (px - 8, py - 8), self.raio // 3)
+            pygame.draw.circle(superficie, COR_SENAI_VERMELHO, (px, py), self.raio, 3)
 
             # Pavio e faíscas animadas
             pavio_x = px + int(math.cos(math.radians(self.angulo)) * self.raio)
             pavio_y = py - int(math.sin(math.radians(self.angulo)) * self.raio)
-            pygame.draw.line(superficie, (160, 120, 70), (px, py), (pavio_x, pavio_y), 3)
+            pygame.draw.line(superficie, (160, 120, 70), (px, py), (pavio_x, pavio_y), 4)
 
             # Faísca brilhante
-            faica_cor = random.choice([(255, 230, 50), (255, 90, 20), (255, 255, 255)])
-            pygame.draw.circle(superficie, faica_cor, (pavio_x, pavio_y), random.randint(3, 7))
+            faica_cor = random.choice([(255, 230, 50), (255, 80, 20), (255, 255, 255)])
+            pygame.draw.circle(superficie, faica_cor, (pavio_x, pavio_y), random.randint(4, 8))
 
             # Ícone de perigo SENAI no centro
-            txt_x = fonte_pequena.render("X", True, (227, 6, 19))
+            txt_x = fonte_pequena.render("X", True, COR_SENAI_VERMELHO)
             superficie.blit(txt_x, (px - txt_x.get_width() // 2, py - txt_x.get_height() // 2))
 
         else:
-            # Desenha fruta inteira
             r = self.raio
             casca = self.tipo["cor_casca"]
             polpa = self.tipo["cor_polpa"]
 
-            # Sombra suave da fruta
-            pygame.draw.circle(superficie, (15, 10, 8), (px + 3, py + 4), r)
+            # Sombra suave no fundo claro
+            pygame.draw.circle(superficie, COR_SOMBRA_FRUTA, (px + 4, py + 6), r)
 
-            # Casca
+            # Casca da fruta
             pygame.draw.circle(superficie, casca, (px, py), r)
 
             # Detalhes específicos de cada fruta
@@ -276,45 +292,39 @@ class Fruta:
                     rad = math.radians(ang + self.angulo)
                     p1 = (px + math.cos(rad) * (r * 0.4), py + math.sin(rad) * (r * 0.4))
                     p2 = (px + math.cos(rad) * r, py + math.sin(rad) * r)
-                    pygame.draw.line(superficie, (20, 90, 35), p1, p2, 4)
+                    pygame.draw.line(superficie, (18, 85, 32), p1, p2, 4)
 
             elif self.tipo_nome == "laranja":
-                # Textura e folhas
                 pygame.draw.circle(superficie, (255, 110, 0), (px, py), r - 4)
                 pygame.draw.circle(superficie, (255, 180, 50), (px - 6, py - 6), r // 3)
 
             elif self.tipo_nome == "maca":
-                # Cabinho da maçã
                 rad = math.radians(self.angulo - 90)
-                cab_fim = (px + math.cos(rad) * (r + 8), py + math.sin(rad) * (r + 8))
+                cab_fim = (px + math.cos(rad) * (r + 9), py + math.sin(rad) * (r + 9))
                 pygame.draw.line(superficie, (90, 50, 20), (px, py), cab_fim, 3)
                 pygame.draw.circle(superficie, (255, 90, 90), (px - 6, py - 6), r // 4)
 
             elif self.tipo_nome == "banana":
-                # Curva estilizada
                 pygame.draw.ellipse(superficie, casca, (px - r, py - r // 2, r * 2, r))
                 pygame.draw.circle(superficie, (110, 75, 20), (px + r - 3, py), 4)
 
             elif self.tipo_nome == "coco":
-                # Fibras do coco
                 pygame.draw.circle(superficie, (75, 40, 20), (px, py), r, 3)
 
             elif self.tipo_nome == "morango":
-                # Pintinhas pretas e folhas
                 for sx, sy in [(-6, -4), (6, -2), (0, 4), (-5, 6), (4, 7)]:
                     pygame.draw.circle(superficie, (150, 10, 30), (px + sx, py + sy), 2)
-                # Folhinha verde no topo
                 pygame.draw.circle(superficie, (40, 160, 60), (px, py - r + 3), 6)
 
 
 class MetadeFruta:
-    """Representa uma das duas metades de uma fruta recém-cortada."""
+    """Representa uma das duas metades de uma fruta cortada."""
     def __init__(self, tipo_nome, x, y, vx, vy, angulo, v_rot, lado):
         self.tipo_nome = tipo_nome
         self.tipo = TIPOS_FRUTA[tipo_nome]
         self.x = x
         self.y = y
-        self.vx = vx + (3.5 if lado == 1 else -3.5)
+        self.vx = vx + (3.8 if lado == 1 else -3.8)
         self.vy = vy + random.uniform(-2.5, 0.5)
         self.angulo = angulo
         self.v_rot = v_rot * 1.8 + (4.0 if lado == 1 else -4.0)
@@ -322,7 +332,7 @@ class MetadeFruta:
         self.raio = self.tipo["raio"]
         self.ativa = True
 
-    def atualizar(self, gravidade=0.45):
+    def atualizar(self, gravidade=0.38):
         self.x += self.vx
         self.y += self.vy
         self.vy += gravidade
@@ -334,52 +344,45 @@ class MetadeFruta:
         casca = self.tipo["cor_casca"]
         polpa = self.tipo["cor_polpa"]
 
-        # Superfície semicircular com rotação
-        surf_metade = pygame.Surface((r * 2 + 8, r * 2 + 8), pygame.SRCALPHA)
-        cx, cy = r + 4, r + 4
+        surf_metade = pygame.Surface((r * 2 + 10, r * 2 + 10), pygame.SRCALPHA)
+        cx, cy = r + 5, r + 5
 
-        # Desenha a metade correspondente (arco de 180 graus)
-        start_ang = 0 if self.lado == 1 else math.pi
-        stop_ang = math.pi if self.lado == 1 else math.pi * 2
-
-        # Polpa interior e casca
         pygame.draw.circle(surf_metade, casca, (cx, cy), r)
         pygame.draw.circle(surf_metade, polpa, (cx, cy), r - 5)
 
-        # Corta ao meio cobrindo a outra metade
+        # Corta a metade oposta
         if self.lado == 1:
-            pygame.draw.rect(surf_metade, (0, 0, 0, 0), (0, cy, r * 2 + 8, r + 4))
+            pygame.draw.rect(surf_metade, (0, 0, 0, 0), (0, cy, r * 2 + 10, r + 5))
         else:
-            pygame.draw.rect(surf_metade, (0, 0, 0, 0), (0, 0, r * 2 + 8, cy))
+            pygame.draw.rect(surf_metade, (0, 0, 0, 0), (0, 0, r * 2 + 10, cy))
 
-        # Rotaciona para o ângulo atual
         rotacionada = pygame.transform.rotate(surf_metade, self.angulo)
         superficie.blit(rotacionada, (px - rotacionada.get_width() // 2, py - rotacionada.get_height() // 2))
 
 
 class ParticulaJuice:
     """Gotas e respingos de suco e faíscas."""
-    def __init__(self, x, y, cor, vel_max=7.0, vida_max=35):
+    def __init__(self, x, y, cor, vel_max=7.5, vida_max=36):
         self.x = x
         self.y = y
         ang = random.uniform(0, math.pi * 2)
-        v = random.uniform(1.5, vel_max)
+        v = random.uniform(1.8, vel_max)
         self.vx = math.cos(ang) * v
         self.vy = math.sin(ang) * v
         self.cor = cor
         self.vida = vida_max
         self.vida_total = vida_max
-        self.raio = random.uniform(3.0, 7.0)
+        self.raio = random.uniform(3.5, 7.5)
 
     def atualizar(self):
         self.x += self.vx
         self.y += self.vy
-        self.vy += 0.28  # gravidade do suco
+        self.vy += 0.28
         self.vida -= 1
 
     def desenhar(self, superficie):
         if self.vida > 0:
-            alpha = int((self.vida / self.vida_total) * 255)
+            alpha = int((self.vida / self.vida_total) * 230)
             r = max(1, int(self.raio * (self.vida / self.vida_total)))
             surf_p = pygame.Surface((r * 2 + 2, r * 2 + 2), pygame.SRCALPHA)
             pygame.draw.circle(surf_p, (*self.cor[:3], alpha), (r + 1, r + 1), r)
@@ -387,8 +390,8 @@ class ParticulaJuice:
 
 
 class NotificacaoTexto:
-    """Textos flutuantes de Combo e Bônus."""
-    def __init__(self, texto, x, y, cor=(255, 215, 0), duracao=45):
+    """Textos flutuantes de Combo e Bônus com sombra de alto contraste."""
+    def __init__(self, texto, x, y, cor=(255, 140, 0), duracao=48):
         self.texto = texto
         self.x = x
         self.y = y
@@ -406,7 +409,6 @@ class NotificacaoTexto:
             surf_t = fonte_combo.render(self.texto, True, self.cor)
             surf_sombra = fonte_combo.render(self.texto, True, (15, 23, 42))
 
-            # Aplica fade de alpha
             surf_t.set_alpha(alpha)
             surf_sombra.set_alpha(alpha)
 
@@ -423,7 +425,6 @@ def distancia_ponto_segmento(px, py, x1, y1, x2, y2):
     if dx == 0 and dy == 0:
         return math.hypot(px - x1, py - y1)
 
-    # Projeção escalar t sobre o segmento [0, 1]
     t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
     t = max(0.0, min(1.0, t))
     proj_x = x1 + t * dx
@@ -433,7 +434,6 @@ def distancia_ponto_segmento(px, py, x1, y1, x2, y2):
 
 # ==================== ESTADO DO JOGO ====================
 
-is_fullscreen = False
 pontuacao = 0
 recorde = 0
 vidas = 3
@@ -445,15 +445,14 @@ particulas = []
 notificacoes = []
 manchas_fundo = []
 
-# Rastro da Lâmina Laser (Histórico de posições com timestamp)
+# Rastro da Lâmina Laser
 rastro_lamina = deque(maxlen=16)
 
-# Controle de Lançamento de Frutas
+# Controle de Lançamento
 tempo_ultimo_spawn = time.time()
-intervalo_spawn = 2.0
-frutas_por_onda = 2
+intervalo_spawn = 2.1
 
-# Temporizador de Combos em um único corte
+# Temporizador de Combos
 tempo_ultimo_corte = 0
 frutas_no_corte_atual = 0
 
@@ -470,19 +469,18 @@ def reiniciar():
     rastro_lamina.clear()
 
 def spawn_onda(largura, altura):
-    """Lança uma nova remessa de frutas e eventuais bombas."""
-    global intervalo_spawn, frutas_por_onda
+    """Lança uma nova remessa de frutas altas e eventuais bombas."""
+    global intervalo_spawn
 
-    # Dificuldade progressiva
     if pontuacao > 40:
         qtd = random.randint(3, 5)
-        chance_bomba = 0.35
+        chance_bomba = 0.32
     elif pontuacao > 20:
         qtd = random.randint(2, 4)
-        chance_bomba = 0.25
+        chance_bomba = 0.22
     else:
         qtd = random.randint(1, 3)
-        chance_bomba = 0.15
+        chance_bomba = 0.12
 
     tipos_disponiveis = ["melancia", "laranja", "maca", "banana", "coco", "morango"]
 
@@ -507,15 +505,15 @@ while executando:
     mouse_x, mouse_y = pygame.mouse.get_pos()
     rastro_lamina.append({"x": mouse_x, "y": mouse_y, "t": agora})
 
-    # Calcula velocidade instantânea do corte
+    # Velocidade instantânea do corte
     velocidade_corte = 0.0
     if len(rastro_lamina) >= 2:
         p_ant = rastro_lamina[-2]
         p_atual = rastro_lamina[-1]
         velocidade_corte = math.hypot(p_atual["x"] - p_ant["x"], p_atual["y"] - p_ant["y"])
 
-    # Reset do combo se a lâmina parar por mais de 0.25s
-    if agora - tempo_ultimo_corte > 0.25:
+    # Reset do combo se a lâmina parar por mais de 0.28s
+    if agora - tempo_ultimo_corte > 0.28:
         if frutas_no_corte_atual >= 3:
             bonus = frutas_no_corte_atual
             pontuacao += bonus
@@ -523,7 +521,7 @@ while executando:
             tocar_som("combo")
         elif frutas_no_corte_atual == 2:
             pontuacao += 1
-            notificacoes.append(NotificacaoTexto("COMBO x2! +1", mouse_x, mouse_y - 20, (255, 180, 50)))
+            notificacoes.append(NotificacaoTexto("COMBO x2! +1", mouse_x, mouse_y - 20, (255, 140, 20)))
             tocar_som("combo")
         frutas_no_corte_atual = 0
 
@@ -533,13 +531,14 @@ while executando:
             executando = False
 
         elif evento.type == pygame.KEYDOWN:
-            # Tela Cheia (F ou F11)
+            # Alternar Tela Cheia (F ou F11)
             if evento.key in (pygame.K_f, pygame.K_F11):
                 is_fullscreen = not is_fullscreen
                 if is_fullscreen:
                     tela = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 else:
                     tela = pygame.display.set_mode((LARGURA_PADRAO, ALTURA_PADRAO), pygame.RESIZABLE)
+                reiniciar()
 
             # Reiniciar partida
             elif evento.key in (pygame.K_SPACE, pygame.K_RETURN) and game_over:
@@ -565,8 +564,7 @@ while executando:
             intervalo_spawn = max(1.2, 2.3 - (pontuacao * 0.02))
 
         # Verificação de Corte (Colisão da Lâmina com as Frutas)
-        # Requer velocidade mínima de movimento para validar o corte como lâmina
-        LIMIAR_VELOCIDADE = 6.0
+        LIMIAR_VELOCIDADE = 5.5
         if len(rastro_lamina) >= 2 and velocidade_corte >= LIMIAR_VELOCIDADE:
             p1 = rastro_lamina[-2]
             p2 = rastro_lamina[-1]
@@ -584,9 +582,8 @@ while executando:
                             # CORTOU A BOMBA!
                             tocar_som("explosao")
                             vidas -= 1
-                            notificacoes.append(NotificacaoTexto("💥 BOMBA! -1 VIDA", fruta.x, fruta.y, (255, 60, 60)))
+                            notificacoes.append(NotificacaoTexto("💥 BOMBA! -1 VIDA", fruta.x, fruta.y, (227, 6, 19)))
 
-                            # Efeito de tremor e faíscas da explosão
                             for _ in range(40):
                                 particulas.append(ParticulaJuice(fruta.x, fruta.y, (255, 80, 20), vel_max=12.0, vida_max=45))
 
@@ -609,18 +606,18 @@ while executando:
                             metades.append(MetadeFruta(fruta.tipo_nome, fruta.x, fruta.y, fruta.vx, fruta.vy, fruta.angulo, fruta.v_rotacao, lado=1))
                             metades.append(MetadeFruta(fruta.tipo_nome, fruta.x, fruta.y, fruta.vx, fruta.vy, fruta.angulo, fruta.v_rotacao, lado=2))
 
-                            # Respingos de suco no fundo
+                            # Respingos de suco no fundo claro (aquarela vibrante)
                             manchas_fundo.append({
                                 "x": fruta.x, "y": fruta.y,
-                                "r": random.randint(fruta.raio - 4, fruta.raio + 12),
+                                "r": random.randint(fruta.raio - 2, fruta.raio + 14),
                                 "cor": fruta.tipo["cor_juice"],
-                                "alpha": 180
+                                "alpha": 160
                             })
-                            if len(manchas_fundo) > 20:
+                            if len(manchas_fundo) > 22:
                                 manchas_fundo.pop(0)
 
                             # Partículas de suco explodindo
-                            for _ in range(22):
+                            for _ in range(24):
                                 particulas.append(ParticulaJuice(fruta.x, fruta.y, fruta.tipo["cor_juice"]))
 
         # Atualização das Frutas Ativas
@@ -657,22 +654,22 @@ while executando:
 
     # ==================== RENDERIZAÇÃO GRÁFICA ====================
 
-    # 1. Fundo Madeira / Tábua Industrial SENAI
-    tela.fill(COR_FUNDO_MADEIRA)
+    # 1. Fundo Claro Elegante (Tábua Limpa SENAI)
+    tela.fill(COR_FUNDO_CLARO)
 
-    # Textura de tábua com ranhuras horizontais
-    for y_line in range(0, altura_atual, 50):
+    # Textura sutil de tábua com ranhuras horizontais
+    for y_line in range(0, altura_atual, 60):
         pygame.draw.line(tela, COR_FUNDO_TABUA, (0, y_line), (largura_atual, y_line), 2)
 
-    # 2. Manchas de Suco no Fundo
+    # 2. Manchas de Suco no Fundo Claro (Aquarela translúcida)
     for mancha in manchas_fundo:
         surf_mancha = pygame.Surface((mancha["r"] * 2 + 4, mancha["r"] * 2 + 4), pygame.SRCALPHA)
-        pygame.draw.circle(surf_mancha, (*mancha["cor"][:3], mancha["alpha"]), (mancha["r"] + 2, mancha["r"] + 2), mancha["r"])
+        pygame.draw.circle(surf_mancha, (*mancha["cor"][:3], int(mancha["alpha"])), (mancha["r"] + 2, mancha["r"] + 2), mancha["r"])
         tela.blit(surf_mancha, (int(mancha["x"]) - mancha["r"], int(mancha["y"]) - mancha["r"]))
-        # Desbota suavemente
-        mancha["alpha"] = max(30, mancha["alpha"] - 0.1)
+        # Desbota muito suavemente
+        mancha["alpha"] = max(20, mancha["alpha"] - 0.08)
 
-    # 3. Metades de Fruta (Abaixo das frutas inteiras)
+    # 3. Metades de Fruta
     for m in metades:
         m.desenhar(tela)
 
@@ -684,7 +681,7 @@ while executando:
     for p in particulas:
         p.desenhar(tela)
 
-    # 6. Rastro da Lâmina Laser (Efeito Sabre de Luz Neon)
+    # 6. Rastro da Lâmina Laser (Efeito Sabre de Luz Neon de Alto Contraste)
     if len(rastro_lamina) >= 2:
         pontos = list(rastro_lamina)
         total_pts = len(pontos)
@@ -694,27 +691,25 @@ while executando:
             p_fim = (pontos[i]["x"], pontos[i]["y"])
 
             frac = i / float(total_pts)
-            espessura_externa = int(frac * 11) + 2
+            espessura_externa = int(frac * 12) + 2
             espessura_interna = int(frac * 4) + 1
 
-            # Brilho externo (Ciano / Vermelho SENAI)
-            cor_externa = COR_LASER_SENAI if frac > 0.6 else COR_LASER_EXTERNO
+            cor_externa = COR_LASER_SENAI if frac > 0.55 else COR_LASER_EXTERNO
             pygame.draw.line(tela, cor_externa, p_ini, p_fim, espessura_externa)
-            # Núcleo branco intenso
             pygame.draw.line(tela, COR_LASER_INTERNO, p_ini, p_fim, espessura_interna)
 
         # Faísca no bico da lâmina
         ponta = pontos[-1]
         pygame.draw.circle(tela, COR_BRANCO, (ponta["x"], ponta["y"]), 5)
-        pygame.draw.circle(tela, COR_LASER_EXTERNO, (ponta["x"], ponta["y"]), 8, 2)
+        pygame.draw.circle(tela, COR_LASER_EXTERNO, (ponta["x"], ponta["y"]), 9, 2)
 
     # 7. Textos Flutuantes de Combo
     for n in notificacoes:
         n.desenhar(tela)
 
-    # 8. HUD Superior Oficial SENAI
+    # 8. HUD Superior Oficial SENAI (Barra escura translúcida para legibilidade máxima)
     hud_surf = pygame.Surface((largura_atual, 60), pygame.SRCALPHA)
-    hud_surf.fill((15, 23, 42, 210))
+    hud_surf.fill((15, 23, 42, 220))
     tela.blit(hud_surf, (0, 0))
     pygame.draw.rect(tela, COR_SENAI_VERMELHO, (0, 57, largura_atual, 3))
 
@@ -741,13 +736,13 @@ while executando:
     tela.blit(txt_rec, (largura_atual - txt_vidas.get_width() - txt_rec.get_width() - 48, 21))
 
     # Rodapé de Instrução
-    txt_guia = fonte_pequena.render("Corte com a mão no ar  |  [F] Tela Cheia  |  [Q] Sair", True, (200, 200, 200))
+    txt_guia = fonte_pequena.render("Corte com a mão no ar  |  [F] Alternar Tela Cheia  |  [Q] Sair", True, (90, 100, 115))
     tela.blit(txt_guia, (largura_atual // 2 - txt_guia.get_width() // 2, altura_atual - 26))
 
     # 9. Tela de Game Over
     if game_over:
         overlay = pygame.Surface((largura_atual, altura_atual), pygame.SRCALPHA)
-        overlay.fill((15, 23, 42, 220))
+        overlay.fill((15, 23, 42, 210))
         tela.blit(overlay, (0, 0))
 
         card_w = min(540, largura_atual - 40)

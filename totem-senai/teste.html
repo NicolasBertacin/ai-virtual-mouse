@@ -995,10 +995,10 @@
         </button>
 
         <div class="nav-section-label">Jogos em Python</div>
-        <button class="nav-item btn-game-launch" id="btnLaunchFlappy" title="Atalho: pressione 'G' no teclado para abrir no PC">
+        <button class="nav-item btn-game-launch" id="btnLaunchFlappy" title="Atalho: pressione 'G' no teclado para abrir em Tela Cheia">
           <span>🎮 Flappy Bird [G]</span>
         </button>
-        <button class="nav-item btn-game-launch" id="btnLaunchFruit" title="Atalho: pressione 'N' no teclado para abrir no PC">
+        <button class="nav-item btn-game-launch" id="btnLaunchFruit" title="Atalho: pressione 'N' no teclado para abrir em Tela Cheia">
           <span>🍉 Fruit Ninja [N]</span>
         </button>
       </nav>
@@ -1629,7 +1629,7 @@
 
       // Função para acionar o jogo Flappy Bird em Python no PC via API local
       function launchFlappyPython() {
-        showToast("🎮 Abrindo Flappy Bird (Python) no PC...");
+        showToast("🎮 Abrindo Flappy Bird em Tela Cheia no PC...");
         playSuccessChime();
 
         const apiUrl = window.location.origin.startsWith("http")
@@ -1642,7 +1642,7 @@
             if (data.status === "already_running") {
               showToast("🎮 Flappy Bird já está em execução no PC!");
             } else {
-              showToast("🎮 Flappy Bird aberto com sucesso no PC!");
+              showToast("🎮 Flappy Bird aberto em Tela Cheia no PC!");
             }
           })
           .catch(err => {
@@ -1665,7 +1665,7 @@
 
       // Função para acionar o jogo Fruit Ninja em Python no PC via API local
       function launchFruitPython() {
-        showToast("🍉 Abrindo Fruit Ninja (Python) no PC...");
+        showToast("🍉 Abrindo Fruit Ninja em Tela Cheia no PC...");
         playSuccessChime();
 
         const apiUrl = window.location.origin.startsWith("http")
@@ -1678,7 +1678,7 @@
             if (data.status === "already_running") {
               showToast("🍉 Fruit Ninja já está em execução no PC!");
             } else {
-              showToast("🍉 Fruit Ninja aberto com sucesso no PC!");
+              showToast("🍉 Fruit Ninja aberto em Tela Cheia no PC!");
             }
           })
           .catch(err => {
